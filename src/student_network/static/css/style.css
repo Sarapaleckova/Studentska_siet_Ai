@@ -100,3 +100,66 @@ input {
     background: #ffffff;
     font-size: 1rem;
 }
+
+.page-app {
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-content {
+    flex: 1;
+    padding: 24px 16px 88px 16px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.app-content h1 {
+    margin: 8px 0 14px 0;
+}
+
+.search-wrap {
+    margin-bottom: 14px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    box-sizing: border-box;
+}
+
+.section-card {
+    background: #ffffff;
+    color: #000000;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    background: #071433;
+    border-top: 1px solid #1a2f63;
+}
+
+.nav-item {
+    flex: 1;
+    text-align: center;
+    padding: 12px 6px;
+    color: #c8d5ff;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.nav-item.active {
+    color: #ffffff;
+    font-weight: bold;
+}
