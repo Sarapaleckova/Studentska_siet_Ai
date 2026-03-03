@@ -1,0 +1,102 @@
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+}
+
+.page {
+    background: #0b1f4d;
+}
+
+.page-home {
+    color: #ffffff;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-home h1 {
+    margin-top: 48px;
+    font-size: 2rem;
+}
+
+.actions {
+    display: flex;
+    gap: 12px;
+}
+
+.page-home .actions {
+    margin-bottom: 64px;
+    gap: 16px;
+}
+
+.button-link {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1rem;
+    text-decoration: none;
+    color: #000000;
+    background: #ffffff;
+}
+
+.page-form {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.card {
+    background: #ffffff;
+    color: #000000;
+    width: 100%;
+    max-width: 420px;
+    border-radius: 12px;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.card h1 {
+    margin: 0 0 20px 0;
+    text-align: center;
+}
+
+.field {
+    margin-bottom: 14px;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+.btn,
+.btn-link {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #c0c0c0;
+    text-decoration: none;
+    font-size: 1rem;
+    background: #ffffff;
+    color: #000000;
+    box-sizing: border-box;
+}
+
+.forgot {
+    margin-top: 12px;
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #c0c0c0;
+    background: #ffffff;
+    font-size: 1rem;
+}

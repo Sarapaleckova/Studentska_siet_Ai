@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="sk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Registrácia</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="page page-form">
+    <div class="card">
+        <h1>Registrácia</h1>
+        <form>
+            <div class="field">
+                <label for="meno">Meno</label>
+                <input id="meno" name="meno" type="text">
+            </div>
+            <div class="field">
+                <label for="priezvisko">Priezvisko</label>
+                <input id="priezvisko" name="priezvisko" type="text">
+            </div>
+            <div class="field">
+                <label for="email">E-mail</label>
+                <input id="email" name="email" type="email">
+            </div>
+            <div class="field">
+                <label for="heslo">Heslo</label>
+                <input id="heslo" name="heslo" type="password">
+            </div>
+            <div class="field">
+                <label for="znova_heslo">Znova heslo</label>
+                <input id="znova_heslo" name="znova_heslo" type="password">
+            </div>
+            <div class="actions">
+                <button class="btn" type="button">Ďalej</button>
+                <a class="btn-link" href="/">Späť</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>
