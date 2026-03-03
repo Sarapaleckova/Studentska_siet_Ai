@@ -59,4 +59,4 @@ def index():
     )
 
 if __name__ == '__main__':
-    app.run(debug=True) v prostredí chýba Flask; nainštalujem ho a hneď znovu spustím server.
+    app.run(debug=True)
