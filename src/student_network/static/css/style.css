@@ -121,6 +121,20 @@ input {
     margin: 8px 0 14px 0;
 }
 
+.exit-link {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10;
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #000000;
+    background: #ffffff;
+    font-size: 0.95rem;
+}
+
 .search-wrap {
     margin-bottom: 14px;
 }
@@ -162,4 +176,36 @@ input {
 .nav-item.active {
     color: #ffffff;
     font-weight: bold;
+}
+
+.form-error {
+    margin: 0 0 8px 0;
+    min-height: 20px;
+    color: #b00020;
+    font-size: 0.95rem;
+}
+
+.field-error {
+    margin-top: 6px;
+    margin-bottom: 0;
+}
+
+.password-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.password-row input {
+    flex: 1;
+}
+
+.toggle-password {
+    border: 1px solid #c0c0c0;
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    cursor: pointer;
 }

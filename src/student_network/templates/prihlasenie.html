@@ -16,7 +16,10 @@
             </div>
             <div class="field">
                 <label for="heslo">Heslo</label>
-                <input id="heslo" name="heslo" type="password">
+                <div class="password-row">
+                    <input id="heslo" name="heslo" type="password">
+                    <button class="toggle-password" type="button" data-target="heslo">Zobraziť heslo</button>
+                </div>
             </div>
             <div class="actions">
                 <a class="btn-link" href="/aplikacia/domov">Ďalej</a>
@@ -25,5 +28,25 @@
             <button class="forgot" type="button">Zabudnuté heslo</button>
         </form>
     </div>
+
+    <script>
+        const toggleButtons = document.querySelectorAll('.toggle-password');
+
+        toggleButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                const targetId = button.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    button.textContent = 'Skryť heslo';
+                    return;
+                }
+
+                input.type = 'password';
+                button.textContent = 'Zobraziť heslo';
+            });
+        });
+    </script>
 </body>
 </html>

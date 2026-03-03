@@ -9,32 +9,97 @@
 <body class="page page-form">
     <div class="card">
         <h1>Registrácia</h1>
-        <form>
+        <form id="registracia-form">
             <div class="field">
                 <label for="meno">Meno</label>
-                <input id="meno" name="meno" type="text">
+                <input id="meno" name="meno" type="text" required>
             </div>
             <div class="field">
                 <label for="priezvisko">Priezvisko</label>
-                <input id="priezvisko" name="priezvisko" type="text">
+                <input id="priezvisko" name="priezvisko" type="text" required>
             </div>
             <div class="field">
                 <label for="email">E-mail</label>
-                <input id="email" name="email" type="email">
+                <input id="email" name="email" type="email" required>
+                <p id="email-error" class="form-error field-error" aria-live="polite"></p>
             </div>
             <div class="field">
                 <label for="heslo">Heslo</label>
-                <input id="heslo" name="heslo" type="password">
+                <div class="password-row">
+                    <input id="heslo" name="heslo" type="password" required>
+                    <button class="toggle-password" type="button" data-target="heslo">Zobraziť heslo</button>
+                </div>
             </div>
             <div class="field">
                 <label for="znova_heslo">Znova heslo</label>
-                <input id="znova_heslo" name="znova_heslo" type="password">
+                <div class="password-row">
+                    <input id="znova_heslo" name="znova_heslo" type="password" required>
+                    <button class="toggle-password" type="button" data-target="znova_heslo">Zobraziť heslo</button>
+                </div>
+                <p id="hesla-error" class="form-error field-error" aria-live="polite"></p>
             </div>
             <div class="actions">
-                <button class="btn" type="button">Ďalej</button>
+                <button class="btn" type="submit">Registrovať sa</button>
                 <a class="btn-link" href="/">Späť</a>
             </div>
         </form>
     </div>
+
+    <script>
+        const registraciaForm = document.getElementById('registracia-form');
+        const emailInput = document.getElementById('email');
+        const hesloInput = document.getElementById('heslo');
+        const znovaHesloInput = document.getElementById('znova_heslo');
+        const emailError = document.getElementById('email-error');
+        const heslaError = document.getElementById('hesla-error');
+        const toggleButtons = document.querySelectorAll('.toggle-password');
+
+        toggleButtons.forEach(function(button) {
+            button.addEventListener('click', function() {
+                const targetId = button.getAttribute('data-target');
+                const input = document.getElementById(targetId);
+
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    button.textContent = 'Skryť heslo';
+                    return;
+                }
+
+                input.type = 'password';
+                button.textContent = 'Zobraziť heslo';
+            });
+        });
+
+        function clearErrors() {
+            emailError.textContent = '';
+            heslaError.textContent = '';
+        }
+
+        registraciaForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            clearErrors();
+
+            if (!registraciaForm.reportValidity()) {
+                return;
+            }
+
+            const email = emailInput.value.trim();
+            const heslo = hesloInput.value;
+            const znovaHeslo = znovaHesloInput.value;
+
+            if (!email.includes('@')) {
+                emailError.textContent = 'Mail je v nesprávnom tvare.';
+                return;
+            }
+
+            if (heslo !== znovaHeslo) {
+                heslaError.textContent = 'Heslá nie sú rovnaké.';
+                return;
+            }
+
+            clearErrors();
+            window.location.href = '/prihlasenie';
+        });
+    </script>
 </body>
 </html>
