@@ -1,3 +1,12 @@
+# Študentská sieť
+
+Toto je základný repozitár pre projekt "Študentská sieť". Aplikácia bude slúžiť ako sieť pre študentov a bude postupne rozširovaná.
+
+# Začiatok
+
+- `src/app.py`: jednoduchý Flask server zobrazujúci uvítaciu správu.
+
+Ďalšie kroky sa budú pridávať podľa požiadaviek.
 <header>
 
 <!--
