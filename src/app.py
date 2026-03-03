@@ -38,25 +38,38 @@ def index():
                     gap: 16px;
                 }
 
-                button {
+                .button-link {
+                    display: inline-block;
                     padding: 12px 24px;
                     border: none;
                     border-radius: 8px;
                     font-size: 1rem;
-                    cursor: pointer;
+                    text-decoration: none;
+                    color: #000000;
+                    background: #ffffff;
                 }
             </style>
         </head>
         <body>
             <h1>Študentská sieť</h1>
             <div class="actions">
-                <button type="button">Prihlásiť sa</button>
-                <button type="button">Registrovať sa</button>
+                <a class="button-link" href="/prihlasenie">Prihlásiť sa</a>
+                <a class="button-link" href="/registracia">Registrovať sa</a>
             </div>
         </body>
         </html>
         """
     )
+
+
+@app.route('/prihlasenie')
+def prihlasenie():
+    return "Prihlásenie"
+
+
+@app.route('/registracia')
+def registracia():
+    return "Registrácia"
 
 if __name__ == '__main__':
     app.run(debug=True)
