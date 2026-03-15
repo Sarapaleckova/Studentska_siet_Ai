@@ -9,10 +9,19 @@
 <body class="page page-form">
     <div class="card">
         <h1>Prihlásenie</h1>
-        <form>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <p class="flash-message flash-{{ category }}">{{ message }}</p>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="post">
             <div class="field">
-                <label for="meno">Meno</label>
-                <input id="meno" name="meno" type="text">
+                <label for="email">E-mail</label>
+                <input id="email" name="email" type="text" value="{{ values.email if values else '' }}">
+                <p class="form-error field-error" aria-live="polite">{{ errors.email if errors else '' }}</p>
             </div>
             <div class="field">
                 <label for="heslo">Heslo</label>
@@ -20,9 +29,11 @@
                     <input id="heslo" name="heslo" type="password">
                     <button class="toggle-password" type="button" data-target="heslo">Zobraziť heslo</button>
                 </div>
+                <p class="form-error field-error" aria-live="polite">{{ errors.heslo if errors else '' }}</p>
             </div>
+            <p class="form-error field-error" aria-live="polite">{{ errors.general if errors else '' }}</p>
             <div class="actions">
-                <a class="btn-link" href="/aplikacia/domov">Ďalej</a>
+                <button class="btn" type="submit">Ďalej</button>
                 <a class="btn-link" href="/">Späť</a>
             </div>
             <button class="forgot" type="button">Zabudnuté heslo</button>

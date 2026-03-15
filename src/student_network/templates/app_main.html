@@ -7,10 +7,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="page page-app">
-    <a class="exit-link" href="/">Odísť</a>
+    <a class="exit-link" href="{{ url_for('odhlasenie') }}">Odísť</a>
 
     <main class="app-content">
         <h1>{{ section_title }}</h1>
+        {% if g.user %}
+        <p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
+        {% endif %}
 
         {% if show_search %}
         <div class="search-wrap">

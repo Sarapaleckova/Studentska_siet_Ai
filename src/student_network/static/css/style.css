@@ -121,6 +121,11 @@ input {
     margin: 8px 0 14px 0;
 }
 
+.welcome-text {
+    margin: 0 0 14px 0;
+    color: #dbe4ff;
+}
+
 .exit-link {
     position: fixed;
     top: 12px;
@@ -183,6 +188,14 @@ input {
     min-height: 20px;
     color: #b00020;
     font-size: 0.95rem;
+}
+
+.flash-message {
+    margin: 0 0 14px 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #e8f5e9;
+    color: #1b5e20;
 }
 
 .field-error {

@@ -9,19 +9,21 @@
 <body class="page page-form">
     <div class="card">
         <h1>Registrácia</h1>
-        <form id="registracia-form">
+        <form method="post">
             <div class="field">
                 <label for="meno">Meno</label>
-                <input id="meno" name="meno" type="text" required>
+                <input id="meno" name="meno" type="text" value="{{ values.meno if values else '' }}" required>
+                <p class="form-error field-error" aria-live="polite">{{ errors.meno if errors else '' }}</p>
             </div>
             <div class="field">
                 <label for="priezvisko">Priezvisko</label>
-                <input id="priezvisko" name="priezvisko" type="text" required>
+                <input id="priezvisko" name="priezvisko" type="text" value="{{ values.priezvisko if values else '' }}" required>
+                <p class="form-error field-error" aria-live="polite">{{ errors.priezvisko if errors else '' }}</p>
             </div>
             <div class="field">
                 <label for="email">E-mail</label>
-                <input id="email" name="email" type="email" required>
-                <p id="email-error" class="form-error field-error" aria-live="polite"></p>
+                <input id="email" name="email" type="text" value="{{ values.email if values else '' }}" required>
+                <p class="form-error field-error" aria-live="polite">{{ errors.email if errors else '' }}</p>
             </div>
             <div class="field">
                 <label for="heslo">Heslo</label>
@@ -29,6 +31,7 @@
                     <input id="heslo" name="heslo" type="password" required>
                     <button class="toggle-password" type="button" data-target="heslo">Zobraziť heslo</button>
                 </div>
+                <p class="form-error field-error" aria-live="polite">{{ errors.heslo if errors else '' }}</p>
             </div>
             <div class="field">
                 <label for="znova_heslo">Znova heslo</label>
@@ -36,7 +39,7 @@
                     <input id="znova_heslo" name="znova_heslo" type="password" required>
                     <button class="toggle-password" type="button" data-target="znova_heslo">Zobraziť heslo</button>
                 </div>
-                <p id="hesla-error" class="form-error field-error" aria-live="polite"></p>
+                <p class="form-error field-error" aria-live="polite">{{ errors.znova_heslo if errors else '' }}</p>
             </div>
             <div class="actions">
                 <button class="btn" type="submit">Registrovať sa</button>
@@ -46,12 +49,6 @@
     </div>
 
     <script>
-        const registraciaForm = document.getElementById('registracia-form');
-        const emailInput = document.getElementById('email');
-        const hesloInput = document.getElementById('heslo');
-        const znovaHesloInput = document.getElementById('znova_heslo');
-        const emailError = document.getElementById('email-error');
-        const heslaError = document.getElementById('hesla-error');
         const toggleButtons = document.querySelectorAll('.toggle-password');
 
         toggleButtons.forEach(function(button) {
@@ -68,37 +65,6 @@
                 input.type = 'password';
                 button.textContent = 'Zobraziť heslo';
             });
-        });
-
-        function clearErrors() {
-            emailError.textContent = '';
-            heslaError.textContent = '';
-        }
-
-        registraciaForm.addEventListener('submit', function(event) {
-            event.preventDefault();
-            clearErrors();
-
-            if (!registraciaForm.reportValidity()) {
-                return;
-            }
-
-            const email = emailInput.value.trim();
-            const heslo = hesloInput.value;
-            const znovaHeslo = znovaHesloInput.value;
-
-            if (!email.includes('@')) {
-                emailError.textContent = 'Mail je v nesprávnom tvare.';
-                return;
-            }
-
-            if (heslo !== znovaHeslo) {
-                heslaError.textContent = 'Heslá nie sú rovnaké.';
-                return;
-            }
-
-            clearErrors();
-            window.location.href = '/prihlasenie';
         });
     </script>
 </body>
