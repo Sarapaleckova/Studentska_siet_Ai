@@ -4,11 +4,12 @@ from datetime import datetime
 from sqlite3 import Row
 
 from student_network.db import get_db
+from student_network.repositories.profiles import create_empty_profile
 
 
-def create_user(meno: str, priezvisko: str, email: str, heslo: str) -> None:
+def create_user(meno: str, priezvisko: str, email: str, heslo: str) -> int:
     database = get_db()
-    database.execute(
+    cursor = database.execute(
         """
         INSERT INTO users (meno, priezvisko, email, heslo, datum_vytvorenia_uctu)
         VALUES (?, ?, ?, ?, ?)
@@ -16,6 +17,9 @@ def create_user(meno: str, priezvisko: str, email: str, heslo: str) -> None:
         (meno, priezvisko, email, heslo, datetime.utcnow().isoformat(timespec='seconds')),
     )
     database.commit()
+    user_id = int(cursor.lastrowid)
+    create_empty_profile(user_id)
+    return user_id
 
 
 def get_user_by_email(email: str) -> Row | None:

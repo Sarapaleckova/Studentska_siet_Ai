@@ -4,8 +4,10 @@ from functools import wraps
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
+from student_network.repositories.profiles import get_profile_by_user_id, save_profile
 from student_network.repositories.users import get_user_by_id
 from student_network.services.auth_service import register_user, validate_login
+from student_network.services.profile_service import profile_values_from_row, validate_profile
 
 
 def register_routes(app: Flask) -> None:
@@ -115,14 +117,30 @@ def register_routes(app: Flask) -> None:
             search_placeholder=''
         )
 
-    @app.route('/aplikacia/profil')
+    @app.route('/aplikacia/profil', methods=['GET', 'POST'])
     @login_required
     def aplikacia_profil() -> str:
+        errors: dict[str, str] = {}
+        profile = get_profile_by_user_id(int(g.user['id']))
+        values = profile_values_from_row(profile)
+
+        if request.method == 'POST':
+            errors, values = validate_profile(request.form)
+
+            if not errors:
+                save_profile(
+                    user_id=int(g.user['id']),
+                    skola=values['skola'],
+                    rocnik_studia=values['rocnik_studia'],
+                    popis=values['popis'],
+                )
+                flash('Profil bol úspešne uložený.', 'success')
+                return redirect(url_for('aplikacia_profil'))
+
         return render_template(
-            'app_main.html',
+            'profil.html',
             active_tab='profil',
-            section_title='Profil',
-            section_content='Profil bude doplnený neskôr',
-            show_search=False,
-            search_placeholder=''
+            user=g.user,
+            values=values,
+            errors=errors,
         )

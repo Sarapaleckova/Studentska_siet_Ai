@@ -77,6 +77,14 @@ input {
     box-sizing: border-box;
 }
 
+textarea {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    resize: vertical;
+    font-family: Arial, sans-serif;
+}
+
 .btn,
 .btn-link {
     flex: 1;
@@ -221,4 +229,21 @@ input {
     font-size: 0.8rem;
     white-space: nowrap;
     cursor: pointer;
+}
+
+.profile-card {
+    margin-bottom: 16px;
+}
+
+.profile-card h2 {
+    margin-top: 0;
+}
+
+.profile-grid {
+    display: grid;
+    gap: 10px;
+}
+
+.profile-form .actions {
+    margin-top: 8px;
 }

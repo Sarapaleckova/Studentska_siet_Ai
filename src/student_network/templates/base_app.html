@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="sk">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Študentská sieť{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="page page-app">
+    <a class="exit-link" href="{{ url_for('odhlasenie') }}">Odísť</a>
+
+    <main class="app-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <nav class="bottom-nav">
+        <a class="nav-item {% if active_tab == 'domov' %}active{% endif %}" href="{{ url_for('aplikacia_domov') }}">Domov</a>
+        <a class="nav-item {% if active_tab == 'skupiny' %}active{% endif %}" href="{{ url_for('aplikacia_skupiny') }}">Skupiny</a>
+        <a class="nav-item {% if active_tab == 'hladat' %}active{% endif %}" href="{{ url_for('aplikacia_hladat') }}">Hľadať</a>
+        <a class="nav-item {% if active_tab == 'pridat' %}active{% endif %}" href="{{ url_for('aplikacia_pridat') }}">Pridať</a>
+        <a class="nav-item {% if active_tab == 'profil' %}active{% endif %}" href="{{ url_for('aplikacia_profil') }}">Profil</a>
+    </nav>
+</body>
+</html>

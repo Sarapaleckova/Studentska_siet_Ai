@@ -14,6 +14,14 @@ CREATE TABLE IF NOT EXISTS users (
     heslo TEXT NOT NULL,
     datum_vytvorenia_uctu TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS user_profiles (
+    user_id INTEGER PRIMARY KEY,
+    skola TEXT NOT NULL DEFAULT '',
+    rocnik_studia TEXT NOT NULL DEFAULT '',
+    popis TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 

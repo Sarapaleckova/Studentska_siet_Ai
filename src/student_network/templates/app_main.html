@@ -1,37 +1,20 @@
-<!doctype html>
-<html lang="sk">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ section_title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body class="page page-app">
-    <a class="exit-link" href="{{ url_for('odhlasenie') }}">Odísť</a>
+{% extends 'base_app.html' %}
 
-    <main class="app-content">
-        <h1>{{ section_title }}</h1>
-        {% if g.user %}
-        <p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
-        {% endif %}
+{% block title %}{{ section_title }}{% endblock %}
 
-        {% if show_search %}
-        <div class="search-wrap">
-            <input class="search-input" type="text" placeholder="{{ search_placeholder }}">
-        </div>
-        {% endif %}
+{% block content %}
+<h1>{{ section_title }}</h1>
+{% if g.user %}
+<p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
+{% endif %}
 
-        <section class="section-card">
-            <p>{{ section_content }}</p>
-        </section>
-    </main>
+{% if show_search %}
+<div class="search-wrap">
+    <input class="search-input" type="text" placeholder="{{ search_placeholder }}">
+</div>
+{% endif %}
 
-    <nav class="bottom-nav">
-        <a class="nav-item {% if active_tab == 'domov' %}active{% endif %}" href="/aplikacia/domov">Domov</a>
-        <a class="nav-item {% if active_tab == 'skupiny' %}active{% endif %}" href="/aplikacia/skupiny">Skupiny</a>
-        <a class="nav-item {% if active_tab == 'hladat' %}active{% endif %}" href="/aplikacia/hladat">Hľadať</a>
-        <a class="nav-item {% if active_tab == 'pridat' %}active{% endif %}" href="/aplikacia/pridat">Pridať</a>
-        <a class="nav-item {% if active_tab == 'profil' %}active{% endif %}" href="/aplikacia/profil">Profil</a>
-    </nav>
-</body>
-</html>
+<section class="section-card">
+    <p>{{ section_content }}</p>
+</section>
+{% endblock %}
