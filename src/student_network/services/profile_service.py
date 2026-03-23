@@ -21,8 +21,8 @@ def profile_values_from_row(profile: Row | None) -> dict[str, str]:
 
 def profile_form_values(user: Mapping[str, str], profile: Row | None) -> dict[str, str]:
     values = profile_values_from_row(profile)
-    values['meno'] = user.get('meno', '').strip()
-    values['priezvisko'] = user.get('priezvisko', '').strip()
+    values['meno'] = (user['meno'] if 'meno' in user else '').strip()
+    values['priezvisko'] = (user['priezvisko'] if 'priezvisko' in user else '').strip()
     return values
 
 
