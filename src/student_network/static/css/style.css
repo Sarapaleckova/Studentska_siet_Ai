@@ -247,3 +247,11 @@ textarea {
 .profile-form .actions {
     margin-top: 8px;
 }
+
+.profile-actions {
+    margin-top: 12px;
+}
+
+.profile-description {
+    white-space: pre-wrap;
+}

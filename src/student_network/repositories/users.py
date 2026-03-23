@@ -36,3 +36,12 @@ def get_user_by_id(user_id: int) -> Row | None:
         "SELECT id, meno, priezvisko, email, heslo, datum_vytvorenia_uctu FROM users WHERE id = ?",
         (user_id,),
     ).fetchone()
+
+
+def update_user_name(user_id: int, meno: str, priezvisko: str) -> None:
+    database = get_db()
+    database.execute(
+        "UPDATE users SET meno = ?, priezvisko = ? WHERE id = ?",
+        (meno, priezvisko, user_id),
+    )
+    database.commit()

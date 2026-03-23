@@ -19,13 +19,32 @@ def profile_values_from_row(profile: Row | None) -> dict[str, str]:
     }
 
 
+def profile_form_values(user: Mapping[str, str], profile: Row | None) -> dict[str, str]:
+    values = profile_values_from_row(profile)
+    values['meno'] = user.get('meno', '').strip()
+    values['priezvisko'] = user.get('priezvisko', '').strip()
+    return values
+
+
 def validate_profile(form: Mapping[str, str]) -> tuple[dict[str, str], dict[str, str]]:
     values = {
+        'meno': form.get('meno', '').strip(),
+        'priezvisko': form.get('priezvisko', '').strip(),
         'skola': form.get('skola', '').strip(),
         'rocnik_studia': form.get('rocnik_studia', '').strip(),
         'popis': form.get('popis', '').strip(),
     }
     errors: dict[str, str] = {}
+
+    if not values['meno']:
+        errors['meno'] = 'Meno je povinné.'
+    elif len(values['meno']) > 80:
+        errors['meno'] = 'Meno môže mať najviac 80 znakov.'
+
+    if not values['priezvisko']:
+        errors['priezvisko'] = 'Priezvisko je povinné.'
+    elif len(values['priezvisko']) > 80:
+        errors['priezvisko'] = 'Priezvisko môže mať najviac 80 znakov.'
 
     if len(values['skola']) > 120:
         errors['skola'] = 'Názov školy môže mať najviac 120 znakov.'

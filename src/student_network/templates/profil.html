@@ -26,25 +26,47 @@
 
 <section class="section-card profile-card">
     <h2>Študijný profil</h2>
-    <form method="post" class="profile-form">
-        <div class="field">
-            <label for="skola">Škola na ktorej študuje</label>
-            <input id="skola" name="skola" type="text" value="{{ values.skola }}">
-            <p class="form-error field-error" aria-live="polite">{{ errors.skola if errors else '' }}</p>
+    {% if not edit_mode %}
+        <div class="profile-grid">
+            <div><strong>Škola na ktorej študuje:</strong> {{ profile_values.skola if profile_values.skola else 'Neuvedené' }}</div>
+            <div><strong>Ročník štúdia:</strong> {{ profile_values.rocnik_studia if profile_values.rocnik_studia else 'Neuvedené' }}</div>
+            <div class="profile-description"><strong>Dobrovoľný popis:</strong> {{ profile_values.popis if profile_values.popis else 'Neuvedené' }}</div>
         </div>
-        <div class="field">
-            <label for="rocnik_studia">Ročník štúdia</label>
-            <input id="rocnik_studia" name="rocnik_studia" type="text" value="{{ values.rocnik_studia }}">
-            <p class="form-error field-error" aria-live="polite">{{ errors.rocnik_studia if errors else '' }}</p>
+        <div class="actions profile-actions">
+            <a class="btn-link" href="{{ url_for('aplikacia_profil', edit=1) }}">Upraviť profil</a>
         </div>
-        <div class="field">
-            <label for="popis">Dobrovoľný popis</label>
-            <textarea id="popis" name="popis" rows="5">{{ values.popis }}</textarea>
-            <p class="form-error field-error" aria-live="polite">{{ errors.popis if errors else '' }}</p>
-        </div>
-        <div class="actions">
-            <button class="btn" type="submit">Uložiť profil</button>
-        </div>
-    </form>
+    {% else %}
+        <form method="post" class="profile-form">
+            <div class="field">
+                <label for="meno">Meno</label>
+                <input id="meno" name="meno" type="text" value="{{ values.meno }}">
+                <p class="form-error field-error" aria-live="polite">{{ errors.meno if errors else '' }}</p>
+            </div>
+            <div class="field">
+                <label for="priezvisko">Priezvisko</label>
+                <input id="priezvisko" name="priezvisko" type="text" value="{{ values.priezvisko }}">
+                <p class="form-error field-error" aria-live="polite">{{ errors.priezvisko if errors else '' }}</p>
+            </div>
+            <div class="field">
+                <label for="skola">Škola na ktorej študuje</label>
+                <input id="skola" name="skola" type="text" value="{{ values.skola }}">
+                <p class="form-error field-error" aria-live="polite">{{ errors.skola if errors else '' }}</p>
+            </div>
+            <div class="field">
+                <label for="rocnik_studia">Ročník štúdia</label>
+                <input id="rocnik_studia" name="rocnik_studia" type="text" value="{{ values.rocnik_studia }}">
+                <p class="form-error field-error" aria-live="polite">{{ errors.rocnik_studia if errors else '' }}</p>
+            </div>
+            <div class="field">
+                <label for="popis">Dobrovoľný popis</label>
+                <textarea id="popis" name="popis" rows="5">{{ values.popis }}</textarea>
+                <p class="form-error field-error" aria-live="polite">{{ errors.popis if errors else '' }}</p>
+            </div>
+            <div class="actions profile-actions">
+                <button class="btn" type="submit" name="action" value="save">Uložiť profil</button>
+                <button class="btn" type="submit" name="action" value="cancel" formnovalidate>Zrušiť</button>
+            </div>
+        </form>
+    {% endif %}
 </section>
 {% endblock %}

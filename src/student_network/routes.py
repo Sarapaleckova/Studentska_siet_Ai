@@ -5,9 +5,9 @@ from functools import wraps
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
-from student_network.repositories.users import get_user_by_id
+from student_network.repositories.users import get_user_by_id, update_user_name
 from student_network.services.auth_service import register_user, validate_login
-from student_network.services.profile_service import profile_values_from_row, validate_profile
+from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
 
 
 def register_routes(app: Flask) -> None:
@@ -121,13 +121,23 @@ def register_routes(app: Flask) -> None:
     @login_required
     def aplikacia_profil() -> str:
         errors: dict[str, str] = {}
+        edit_mode = request.args.get('edit') == '1'
         profile = get_profile_by_user_id(int(g.user['id']))
-        values = profile_values_from_row(profile)
+        values = profile_form_values(g.user, profile)
 
         if request.method == 'POST':
+            if request.form.get('action') == 'cancel':
+                return redirect(url_for('aplikacia_profil'))
+
             errors, values = validate_profile(request.form)
+            edit_mode = True
 
             if not errors:
+                update_user_name(
+                    user_id=int(g.user['id']),
+                    meno=values['meno'],
+                    priezvisko=values['priezvisko'],
+                )
                 save_profile(
                     user_id=int(g.user['id']),
                     skola=values['skola'],
@@ -141,6 +151,8 @@ def register_routes(app: Flask) -> None:
             'profil.html',
             active_tab='profil',
             user=g.user,
+            profile_values=profile_values_from_row(profile),
             values=values,
             errors=errors,
+            edit_mode=edit_mode,
         )
