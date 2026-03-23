@@ -129,7 +129,7 @@ def register_routes(app: Flask) -> None:
             if request.form.get('action') == 'cancel':
                 return redirect(url_for('aplikacia_profil'))
 
-            errors, values = validate_profile(request.form)
+            errors, values = validate_profile(request.form, g.user)
             edit_mode = True
 
             if not errors:

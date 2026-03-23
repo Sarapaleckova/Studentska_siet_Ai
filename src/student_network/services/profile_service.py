@@ -26,7 +26,7 @@ def profile_form_values(user: Mapping[str, str], profile: Row | None) -> dict[st
     return values
 
 
-def validate_profile(form: Mapping[str, str]) -> tuple[dict[str, str], dict[str, str]]:
+def validate_profile(form: Mapping[str, str], current_user: Mapping[str, str] | None = None) -> tuple[dict[str, str], dict[str, str]]:
     values = {
         'meno': form.get('meno', '').strip(),
         'priezvisko': form.get('priezvisko', '').strip(),
@@ -36,14 +36,16 @@ def validate_profile(form: Mapping[str, str]) -> tuple[dict[str, str], dict[str,
     }
     errors: dict[str, str] = {}
 
-    if not values['meno']:
-        errors['meno'] = 'Meno je povinné.'
-    elif len(values['meno']) > 80:
+    if not values['meno'] and current_user is not None and 'meno' in current_user:
+        values['meno'] = str(current_user['meno']).strip()
+
+    if not values['priezvisko'] and current_user is not None and 'priezvisko' in current_user:
+        values['priezvisko'] = str(current_user['priezvisko']).strip()
+
+    if len(values['meno']) > 80:
         errors['meno'] = 'Meno môže mať najviac 80 znakov.'
 
-    if not values['priezvisko']:
-        errors['priezvisko'] = 'Priezvisko je povinné.'
-    elif len(values['priezvisko']) > 80:
+    if len(values['priezvisko']) > 80:
         errors['priezvisko'] = 'Priezvisko môže mať najviac 80 znakov.'
 
     if len(values['skola']) > 120:
