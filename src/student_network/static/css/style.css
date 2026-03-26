@@ -444,7 +444,7 @@ textarea {
 .post-detail-container {
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 14px;
 }
 
 .post-detail-preview {
@@ -468,13 +468,11 @@ textarea {
 .post-detail-info {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
 }
 
 .post-detail-title {
-    margin: 0;
     font-size: 1.8rem;
-    color: #0b1f4d;
 }
 
 .post-detail-meta {
@@ -485,7 +483,7 @@ textarea {
 
 .post-meta-item {
     margin: 0;
-    color: #3e4e6f;
+    color: #1a2540;
 }
 
 .post-detail-description-wrap {
