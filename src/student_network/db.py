@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     skola TEXT NOT NULL DEFAULT '',
     rocnik_studia TEXT NOT NULL DEFAULT '',
     popis TEXT NOT NULL DEFAULT '',
+    profilova_fotka TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 """
@@ -53,7 +54,18 @@ def close_db(_exception: Exception | None = None) -> None:
 def init_db() -> None:
     database = get_db()
     database.executescript(SCHEMA)
+    ensure_profile_photo_column(database)
     database.commit()
+
+
+def ensure_profile_photo_column(database: sqlite3.Connection) -> None:
+    columns = database.execute("PRAGMA table_info(user_profiles)").fetchall()
+    existing_column_names = {column['name'] for column in columns}
+
+    if 'profilova_fotka' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE user_profiles ADD COLUMN profilova_fotka TEXT NOT NULL DEFAULT ''"
+        )
 
 
 def current_database_path() -> str:

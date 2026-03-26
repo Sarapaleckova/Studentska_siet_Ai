@@ -10,12 +10,14 @@ def profile_values_from_row(profile: Row | None) -> dict[str, str]:
             'skola': '',
             'rocnik_studia': '',
             'popis': '',
+            'profilova_fotka': '',
         }
 
     return {
         'skola': profile['skola'] or '',
         'rocnik_studia': profile['rocnik_studia'] or '',
         'popis': profile['popis'] or '',
+        'profilova_fotka': profile['profilova_fotka'] or '',
     }
 
 

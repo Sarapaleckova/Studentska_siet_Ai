@@ -16,12 +16,29 @@
 
 <section class="section-card profile-card">
     <h2>Základné údaje</h2>
-    <div class="profile-grid">
-        <div><strong>Meno:</strong> {{ user['meno'] }}</div>
-        <div><strong>Priezvisko:</strong> {{ user['priezvisko'] }}</div>
-        <div><strong>E-mail:</strong> {{ user['email'] }}</div>
-        <div><strong>Dátum registrácie:</strong> {{ user['datum_vytvorenia_uctu'].replace('T', ' ') }}</div>
+    <div class="profile-header">
+        <div class="avatar-wrap" aria-label="Profilová fotografia používateľa">
+            {% if profile_photo_url %}
+                <img class="avatar-image" src="{{ profile_photo_url }}" alt="Profilová fotografia používateľa">
+            {% else %}
+                <div class="avatar-fallback" aria-hidden="true"></div>
+            {% endif %}
+        </div>
+        <div class="profile-grid">
+            <div><strong>Meno:</strong> {{ user['meno'] }}</div>
+            <div><strong>Priezvisko:</strong> {{ user['priezvisko'] }}</div>
+            <div><strong>E-mail:</strong> {{ user['email'] }}</div>
+            <div><strong>Dátum registrácie:</strong> {{ user['datum_vytvorenia_uctu'].replace('T', ' ') }}</div>
+        </div>
     </div>
+
+    {% if edit_mode %}
+        <div class="field profile-photo-field">
+            <label for="profilova_fotka">Profilová fotografia</label>
+            <input id="profilova_fotka" name="profilova_fotka" type="file" accept="image/png,image/jpeg,image/webp,image/gif" form="profile-edit-form">
+            <p class="form-error field-error" aria-live="polite">{{ errors.profilova_fotka if errors else '' }}</p>
+        </div>
+    {% endif %}
 </section>
 
 <section class="section-card profile-card">
@@ -36,7 +53,7 @@
             <a class="btn-link" href="{{ url_for('aplikacia_profil', edit=1) }}">Upraviť profil</a>
         </div>
     {% else %}
-        <form method="post" class="profile-form">
+        <form method="post" class="profile-form" id="profile-edit-form" enctype="multipart/form-data">
             <div class="field">
                 <label for="meno">Meno</label>
                 <input id="meno" name="meno" type="text" value="{{ values.meno }}">

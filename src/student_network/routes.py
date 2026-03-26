@@ -1,13 +1,18 @@
 """Route definitions for Študentská sieť."""
 
 from functools import wraps
+from pathlib import Path
+from uuid import uuid4
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from werkzeug.utils import secure_filename
 
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
 from student_network.repositories.users import get_user_by_id, update_user_name
 from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
+
+ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 
 
 def register_routes(app: Flask) -> None:
@@ -123,7 +128,9 @@ def register_routes(app: Flask) -> None:
         errors: dict[str, str] = {}
         edit_mode = request.args.get('edit') == '1'
         profile = get_profile_by_user_id(int(g.user['id']))
+        profile_values = profile_values_from_row(profile)
         values = profile_form_values(g.user, profile)
+        profile_photo_path = profile_values['profilova_fotka']
 
         if request.method == 'POST':
             if request.form.get('action') == 'cancel':
@@ -131,6 +138,26 @@ def register_routes(app: Flask) -> None:
 
             errors, values = validate_profile(request.form, g.user)
             edit_mode = True
+
+            uploaded_photo = request.files.get('profilova_fotka')
+            if uploaded_photo and uploaded_photo.filename:
+                sanitized_filename = secure_filename(uploaded_photo.filename)
+                extension = Path(sanitized_filename).suffix.lower()
+
+                if extension not in ALLOWED_PROFILE_PHOTO_EXTENSIONS:
+                    errors['profilova_fotka'] = 'Povolené formáty: PNG, JPG, JPEG, WEBP, GIF.'
+                else:
+                    upload_dir = Path(app.config['PROFILE_PHOTO_UPLOAD_DIR'])
+                    new_filename = f"user_{int(g.user['id'])}_{uuid4().hex}{extension}"
+                    destination = upload_dir / new_filename
+                    uploaded_photo.save(destination)
+
+                    if profile_photo_path:
+                        old_file = Path(app.static_folder or '') / profile_photo_path
+                        if old_file.exists() and old_file.is_file():
+                            old_file.unlink()
+
+                    profile_photo_path = f"uploads/profile_photos/{new_filename}"
 
             if not errors:
                 update_user_name(
@@ -143,15 +170,19 @@ def register_routes(app: Flask) -> None:
                     skola=values['skola'],
                     rocnik_studia=values['rocnik_studia'],
                     popis=values['popis'],
+                    profilova_fotka=profile_photo_path,
                 )
                 flash('Profil bol úspešne uložený.', 'success')
                 return redirect(url_for('aplikacia_profil'))
+
+        profile_photo_url = url_for('static', filename=profile_photo_path) if profile_photo_path else None
 
         return render_template(
             'profil.html',
             active_tab='profil',
             user=g.user,
-            profile_values=profile_values_from_row(profile),
+            profile_values=profile_values,
+            profile_photo_url=profile_photo_url,
             values=values,
             errors=errors,
             edit_mode=edit_mode,

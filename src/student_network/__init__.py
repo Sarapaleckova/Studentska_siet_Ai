@@ -11,6 +11,9 @@ def create_app() -> Flask:
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'studentska-siet-secret-key'
     app.config['DATABASE'] = str(Path(app.root_path) / 'data' / 'student_network.db')
+    app.config['PROFILE_PHOTO_UPLOAD_DIR'] = str(Path(app.root_path) / 'static' / 'uploads' / 'profile_photos')
+
+    Path(app.config['PROFILE_PHOTO_UPLOAD_DIR']).mkdir(parents=True, exist_ok=True)
 
     init_db_app(app)
 
