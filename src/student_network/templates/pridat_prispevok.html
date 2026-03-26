@@ -1,0 +1,106 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Pridať príspevok{% endblock %}
+
+{% block content %}
+<h1>Pridať príspevok</h1>
+{% if g.user %}
+<p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
+{% endif %}
+
+<section class="section-card post-form-card">
+    <form method="post" enctype="multipart/form-data" class="post-form" id="post-form">
+        <div class="field">
+            <label for="nazov">Názov príspevku</label>
+            <input id="nazov" name="nazov" type="text" value="{{ values.nazov }}" maxlength="160" required>
+            <p class="form-error field-error" aria-live="polite">{{ errors.nazov if errors else '' }}</p>
+        </div>
+
+        <div class="field">
+            <label for="popis">Popis (voliteľný)</label>
+            <textarea id="popis" name="popis" rows="6" maxlength="2000">{{ values.popis }}</textarea>
+            <p class="form-error field-error" aria-live="polite">{{ errors.popis if errors else '' }}</p>
+        </div>
+
+        <div class="field">
+            <label for="nahladovy_obrazok">Náhľadový obrázok (voliteľný)</label>
+            <input id="nahladovy_obrazok" name="nahladovy_obrazok" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+            <p class="form-error field-error" aria-live="polite">{{ errors.nahladovy_obrazok if errors else '' }}</p>
+        </div>
+
+        <div class="field">
+            <label for="subor">Súbor (voliteľný)</label>
+            <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Potiahni sem súbor alebo klikni na výber súboru">
+                <p class="drop-zone-title">Potiahni sem súbor alebo klikni na výber</p>
+                <p class="drop-zone-types">PDF, Word, prezentácia, TXT a ďalšie bežné typy</p>
+                <p class="drop-zone-selected" id="drop-zone-selected">Žiadny súbor nie je vybraný</p>
+            </div>
+            <input id="subor" name="subor" type="file" class="hidden-file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.xls,.xlsx,.csv,.zip,.rar,.7z,.jpg,.jpeg,.png,.webp">
+            <p class="form-error field-error" aria-live="polite">{{ errors.subor if errors else '' }}</p>
+        </div>
+
+        <div class="actions">
+            <button class="btn" type="submit">Pridať príspevok</button>
+        </div>
+    </form>
+</section>
+
+<script>
+(function () {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('subor');
+    const selectedLabel = document.getElementById('drop-zone-selected');
+
+    if (!dropZone || !fileInput || !selectedLabel) {
+        return;
+    }
+
+    function updateSelectedLabel(file) {
+        selectedLabel.textContent = file ? file.name : 'Žiadny súbor nie je vybraný';
+    }
+
+    dropZone.addEventListener('click', function () {
+        fileInput.click();
+    });
+
+    dropZone.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            fileInput.click();
+        }
+    });
+
+    fileInput.addEventListener('change', function () {
+        updateSelectedLabel(fileInput.files[0]);
+    });
+
+    ['dragenter', 'dragover'].forEach(function (eventName) {
+        dropZone.addEventListener(eventName, function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            dropZone.classList.add('drop-zone-active');
+        });
+    });
+
+    ['dragleave', 'drop'].forEach(function (eventName) {
+        dropZone.addEventListener(eventName, function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            dropZone.classList.remove('drop-zone-active');
+        });
+    });
+
+    dropZone.addEventListener('drop', function (event) {
+        const files = event.dataTransfer.files;
+        if (!files || !files.length) {
+            return;
+        }
+
+        const transfer = new DataTransfer();
+        transfer.items.add(files[0]);
+        fileInput.files = transfer.files;
+        updateSelectedLabel(files[0]);
+    });
+})();
+</script>
+{% endblock %}

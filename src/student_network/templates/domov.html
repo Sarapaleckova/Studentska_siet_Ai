@@ -1,0 +1,42 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Domov{% endblock %}
+
+{% block content %}
+<h1>Domov</h1>
+{% if g.user %}
+<p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <p class="flash-message flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+{% if posts %}
+<section class="post-grid" aria-label="Zoznam príspevkov">
+    {% for post in posts %}
+    <a class="post-card" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id) }}">
+        <div class="post-thumb-wrap">
+            {% if post.nahladovy_obrazok_url %}
+                <img src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}" class="post-thumb-image">
+            {% else %}
+                <div class="post-thumb-placeholder" aria-hidden="true"></div>
+            {% endif %}
+        </div>
+        <div class="post-card-body">
+            <h3>{{ post.nazov }}</h3>
+            <p>Autor: {{ post.autor }}</p>
+        </div>
+    </a>
+    {% endfor %}
+</section>
+{% else %}
+<section class="section-card">
+    <p>Zatiaľ nie sú pridané žiadne príspevky.</p>
+</section>
+{% endif %}
+{% endblock %}

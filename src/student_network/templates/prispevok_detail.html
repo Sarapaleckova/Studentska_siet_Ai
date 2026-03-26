@@ -1,0 +1,26 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Detail príspevku{% endblock %}
+
+{% block content %}
+<h1>{{ post.nazov }}</h1>
+<p class="welcome-text">Autor: {{ post.autor }}</p>
+
+<section class="section-card post-detail-card">
+    <p><strong>Dátum vytvorenia:</strong> {{ post.datum_vytvorenia }}</p>
+
+    {% if post.nahladovy_obrazok_url %}
+        <img class="post-detail-image" src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}">
+    {% else %}
+        <div class="post-detail-placeholder" aria-hidden="true"></div>
+    {% endif %}
+
+    <p class="post-detail-description">{{ post.popis if post.popis else 'Bez popisu.' }}</p>
+
+    {% if post.subor_url %}
+        <a class="btn-link" href="{{ post.subor_url }}" target="_blank" rel="noopener noreferrer">
+            Otvoriť súbor: {{ post.subor_povodny_nazov }}
+        </a>
+    {% endif %}
+</section>
+{% endblock %}

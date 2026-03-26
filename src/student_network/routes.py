@@ -8,11 +8,26 @@ from flask import Flask, flash, g, redirect, render_template, request, session, 
 from werkzeug.utils import secure_filename
 
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
+from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id
 from student_network.repositories.users import get_user_by_id, update_user_name
 from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
 
 ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+ALLOWED_POST_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+ALLOWED_POST_FILE_EXTENSIONS = {
+    '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.rtf', '.odt', '.ods', '.odp',
+    '.xls', '.xlsx', '.csv', '.zip', '.rar', '.7z', '.jpg', '.jpeg', '.png', '.webp'
+}
+
+
+def _save_uploaded_file(uploaded_file, target_dir: Path, user_id: int) -> tuple[str, str]:
+    original_name = secure_filename(uploaded_file.filename)
+    extension = Path(original_name).suffix.lower()
+    unique_name = f"user_{user_id}_{uuid4().hex}{extension}"
+    target_path = target_dir / unique_name
+    uploaded_file.save(target_path)
+    return unique_name, original_name
 
 
 def register_routes(app: Flask) -> None:
@@ -77,13 +92,20 @@ def register_routes(app: Flask) -> None:
     @app.route('/aplikacia/domov')
     @login_required
     def aplikacia_domov() -> str:
+        post_rows = get_all_posts()
+        posts = [
+            {
+                'id': row['id'],
+                'nazov': row['nazov'],
+                'autor': f"{row['author_meno']} {row['author_priezvisko']}",
+                'nahladovy_obrazok_url': url_for('static', filename=row['nahladovy_obrazok']) if row['nahladovy_obrazok'] else None,
+            }
+            for row in post_rows
+        ]
         return render_template(
-            'app_main.html',
+            'domov.html',
             active_tab='domov',
-            section_title='Domov',
-            section_content='Príspevky',
-            show_search=True,
-            search_placeholder='Hľadať príspevky...'
+            posts=posts,
         )
 
     @app.route('/aplikacia/skupiny')
@@ -113,13 +135,109 @@ def register_routes(app: Flask) -> None:
     @app.route('/aplikacia/pridat')
     @login_required
     def aplikacia_pridat() -> str:
+        values = {
+            'nazov': '',
+            'popis': '',
+        }
         return render_template(
-            'app_main.html',
+            'pridat_prispevok.html',
             active_tab='pridat',
-            section_title='Pridať',
-            section_content='Sekcia Pridať',
-            show_search=False,
-            search_placeholder=''
+            values=values,
+            errors={},
+        )
+
+    @app.route('/aplikacia/pridat', methods=['POST'])
+    @login_required
+    def aplikacia_pridat_submit() -> str:
+        errors: dict[str, str] = {}
+        values = {
+            'nazov': request.form.get('nazov', '').strip(),
+            'popis': request.form.get('popis', '').strip(),
+        }
+
+        if not values['nazov']:
+            errors['nazov'] = 'Názov príspevku je povinný.'
+        elif len(values['nazov']) > 160:
+            errors['nazov'] = 'Názov môže mať najviac 160 znakov.'
+
+        if len(values['popis']) > 2000:
+            errors['popis'] = 'Popis môže mať najviac 2000 znakov.'
+
+        uploaded_image = request.files.get('nahladovy_obrazok')
+        image_relative_path = ''
+        if uploaded_image and uploaded_image.filename:
+            image_filename = secure_filename(uploaded_image.filename)
+            image_extension = Path(image_filename).suffix.lower()
+
+            if image_extension not in ALLOWED_POST_IMAGE_EXTENSIONS:
+                errors['nahladovy_obrazok'] = 'Povolené formáty obrázka: PNG, JPG, JPEG, WEBP, GIF.'
+            else:
+                stored_image_name, _ = _save_uploaded_file(
+                    uploaded_image,
+                    Path(app.config['POST_IMAGE_UPLOAD_DIR']),
+                    int(g.user['id']),
+                )
+                image_relative_path = f"uploads/post_images/{stored_image_name}"
+
+        uploaded_file = request.files.get('subor')
+        file_relative_path = ''
+        file_original_name = ''
+        if uploaded_file and uploaded_file.filename:
+            file_name = secure_filename(uploaded_file.filename)
+            file_extension = Path(file_name).suffix.lower()
+
+            if file_extension not in ALLOWED_POST_FILE_EXTENSIONS:
+                errors['subor'] = 'Nepodporovaný typ súboru.'
+            else:
+                stored_file_name, file_original_name = _save_uploaded_file(
+                    uploaded_file,
+                    Path(app.config['POST_FILE_UPLOAD_DIR']),
+                    int(g.user['id']),
+                )
+                file_relative_path = f"uploads/post_files/{stored_file_name}"
+
+        if errors:
+            return render_template(
+                'pridat_prispevok.html',
+                active_tab='pridat',
+                values=values,
+                errors=errors,
+            )
+
+        create_post(
+            author_id=int(g.user['id']),
+            nazov=values['nazov'],
+            popis=values['popis'],
+            nahladovy_obrazok=image_relative_path,
+            subor=file_relative_path,
+            subor_povodny_nazov=file_original_name,
+        )
+        flash('Príspevok bol úspešne nahratý.', 'success')
+        return redirect(url_for('aplikacia_domov'))
+
+    @app.route('/aplikacia/prispevky/<int:post_id>')
+    @login_required
+    def aplikacia_prispevok_detail(post_id: int) -> str:
+        post_row = get_post_by_id(post_id)
+        if post_row is None:
+            flash('Príspevok sa nenašiel.', 'error')
+            return redirect(url_for('aplikacia_domov'))
+
+        post = {
+            'id': post_row['id'],
+            'nazov': post_row['nazov'],
+            'popis': post_row['popis'],
+            'autor': f"{post_row['author_meno']} {post_row['author_priezvisko']}",
+            'datum_vytvorenia': post_row['datum_vytvorenia'].replace('T', ' '),
+            'nahladovy_obrazok_url': url_for('static', filename=post_row['nahladovy_obrazok']) if post_row['nahladovy_obrazok'] else None,
+            'subor_url': url_for('static', filename=post_row['subor']) if post_row['subor'] else None,
+            'subor_povodny_nazov': post_row['subor_povodny_nazov'],
+        }
+
+        return render_template(
+            'prispevok_detail.html',
+            active_tab='domov',
+            post=post,
         )
 
     @app.route('/aplikacia/profil', methods=['GET', 'POST'])

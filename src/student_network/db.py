@@ -23,6 +23,18 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     profilova_fotka TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    author_id INTEGER NOT NULL,
+    nazov TEXT NOT NULL,
+    popis TEXT NOT NULL DEFAULT '',
+    nahladovy_obrazok TEXT NOT NULL DEFAULT '',
+    subor TEXT NOT NULL DEFAULT '',
+    subor_povodny_nazov TEXT NOT NULL DEFAULT '',
+    datum_vytvorenia TEXT NOT NULL,
+    FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 
