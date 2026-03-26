@@ -472,7 +472,9 @@ textarea {
 }
 
 .post-detail-title {
+    margin: 0;
     font-size: 1.8rem;
+    color: #ffffff;
 }
 
 .post-detail-meta {
@@ -483,7 +485,7 @@ textarea {
 
 .post-meta-item {
     margin: 0;
-    color: #1a2540;
+    color: #ffffff;
 }
 
 .post-detail-description-wrap {
