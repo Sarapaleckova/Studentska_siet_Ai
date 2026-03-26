@@ -28,8 +28,8 @@
             {% endif %}
         </div>
         <div class="post-card-info">
-            <p class="post-filename">{{ post.subor_povodny_nazov if post.subor_povodny_nazov else post.nazov }}</p>
-            <p class="post-author">{{ post.autor }}</p>
+            <h3 class="post-card-title">{{ post.nazov }}</h3>
+            <p class="post-card-author">Autor: {{ post.autor }}</p>
         </div>
     </a>
     {% endfor %}

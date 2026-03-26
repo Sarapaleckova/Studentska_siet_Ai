@@ -424,20 +424,21 @@ textarea {
 
 .post-card-info {
     flex: 1;
-    padding: 16px;
+    padding: 16px 20px;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    gap: 10px;
 }
 
-.post-filename {
-    margin: 0 0 12px 0;
-    font-size: 1.1rem;
+.post-card-title {
+    margin: 0;
+    font-size: 1.2rem;
     font-weight: 600;
     color: #0b1f4d;
 }
 
-.post-author {
+.post-card-author {
     margin: 0;
     color: #3e4e6f;
     font-size: 0.95rem;
