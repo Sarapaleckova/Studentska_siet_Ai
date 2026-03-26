@@ -98,6 +98,7 @@ def register_routes(app: Flask) -> None:
                 'id': row['id'],
                 'nazov': row['nazov'],
                 'autor': f"{row['author_meno']} {row['author_priezvisko']}",
+                'subor_povodny_nazov': row['subor_povodny_nazov'],
                 'nahladovy_obrazok_url': url_for('static', filename=row['nahladovy_obrazok']) if row['nahladovy_obrazok'] else None,
             }
             for row in post_rows

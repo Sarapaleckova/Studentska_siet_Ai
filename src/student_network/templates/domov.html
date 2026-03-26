@@ -17,19 +17,19 @@
 {% endwith %}
 
 {% if posts %}
-<section class="post-grid" aria-label="Zoznam príspevkov">
+<section class="posts-feed" aria-label="Zoznam príspevkov">
     {% for post in posts %}
-    <a class="post-card" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id) }}">
-        <div class="post-thumb-wrap">
+    <a class="post-card-wide" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id) }}">
+        <div class="post-card-thumbnail">
             {% if post.nahladovy_obrazok_url %}
-                <img src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}" class="post-thumb-image">
+                <img src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}" class="post-card-image">
             {% else %}
-                <div class="post-thumb-placeholder" aria-hidden="true"></div>
+                <div class="post-card-placeholder" aria-hidden="true"></div>
             {% endif %}
         </div>
-        <div class="post-card-body">
-            <h3>{{ post.nazov }}</h3>
-            <p>Autor: {{ post.autor }}</p>
+        <div class="post-card-info">
+            <p class="post-filename">{{ post.subor_povodny_nazov if post.subor_povodny_nazov else post.nazov }}</p>
+            <p class="post-author">{{ post.autor }}</p>
         </div>
     </a>
     {% endfor %}

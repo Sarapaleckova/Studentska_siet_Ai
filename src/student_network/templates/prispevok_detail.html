@@ -3,24 +3,35 @@
 {% block title %}Detail príspevku{% endblock %}
 
 {% block content %}
-<h1>{{ post.nazov }}</h1>
-<p class="welcome-text">Autor: {{ post.autor }}</p>
+<section class="post-detail-container">
+    <div class="post-detail-preview">
+        {% if post.nahladovy_obrazok_url %}
+            <img class="post-detail-large-image" src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}">
+        {% else %}
+            <div class="post-detail-large-placeholder" aria-hidden="true"></div>
+        {% endif %}
+    </div>
 
-<section class="section-card post-detail-card">
-    <p><strong>Dátum vytvorenia:</strong> {{ post.datum_vytvorenia }}</p>
+    <div class="post-detail-info">
+        <h1 class="post-detail-title">{{ post.nazov }}</h1>
+        
+        <div class="post-detail-meta">
+            <p class="post-meta-item"><strong>Autor:</strong> {{ post.autor }}</p>
+            <p class="post-meta-item"><strong>Dátum pridania:</strong> {{ post.datum_vytvorenia }}</p>
+        </div>
 
-    {% if post.nahladovy_obrazok_url %}
-        <img class="post-detail-image" src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}">
-    {% else %}
-        <div class="post-detail-placeholder" aria-hidden="true"></div>
-    {% endif %}
+        <div class="post-detail-description-wrap">
+            <p class="post-detail-description">{{ post.popis if post.popis else 'Bez popisu.' }}</p>
+        </div>
 
-    <p class="post-detail-description">{{ post.popis if post.popis else 'Bez popisu.' }}</p>
-
-    {% if post.subor_url %}
-        <a class="btn-link" href="{{ post.subor_url }}" target="_blank" rel="noopener noreferrer">
-            Otvoriť súbor: {{ post.subor_povodny_nazov }}
-        </a>
-    {% endif %}
+        <div class="post-detail-actions">
+            <a class="btn btn-back" href="{{ url_for('aplikacia_domov') }}">Odísť</a>
+            {% if post.subor_url %}
+                <a class="btn btn-download" href="{{ post.subor_url }}" download="{{ post.subor_povodny_nazov }}">
+                    Stiahnuť
+                </a>
+            {% endif %}
+        </div>
+    </div>
 </section>
 {% endblock %}
