@@ -29,6 +29,9 @@ def profile_form_values(user: Mapping[str, str], profile: Row | None) -> dict[st
 
 
 def validate_profile(form: Mapping[str, str], current_user: Mapping[str, str] | None = None) -> tuple[dict[str, str], dict[str, str]]:
+    original_meno = str(current_user['meno']).strip() if current_user is not None and 'meno' in current_user else ''
+    original_priezvisko = str(current_user['priezvisko']).strip() if current_user is not None and 'priezvisko' in current_user else ''
+
     values = {
         'meno': form.get('meno', '').strip(),
         'priezvisko': form.get('priezvisko', '').strip(),
@@ -38,11 +41,17 @@ def validate_profile(form: Mapping[str, str], current_user: Mapping[str, str] | 
     }
     errors: dict[str, str] = {}
 
-    if not values['meno'] and current_user is not None and 'meno' in current_user:
-        values['meno'] = str(current_user['meno']).strip()
+    if not values['meno']:
+        values['meno'] = original_meno
 
-    if not values['priezvisko'] and current_user is not None and 'priezvisko' in current_user:
-        values['priezvisko'] = str(current_user['priezvisko']).strip()
+    if not values['priezvisko']:
+        values['priezvisko'] = original_priezvisko
+
+    if not values['meno']:
+        errors['meno'] = 'Meno nemôže byť prázdne.'
+
+    if not values['priezvisko']:
+        errors['priezvisko'] = 'Priezvisko nemôže byť prázdne.'
 
     if len(values['meno']) > 80:
         errors['meno'] = 'Meno môže mať najviac 80 znakov.'
