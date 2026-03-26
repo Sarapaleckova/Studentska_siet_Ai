@@ -47,12 +47,6 @@ def validate_profile(form: Mapping[str, str], current_user: Mapping[str, str] | 
     if not values['priezvisko']:
         values['priezvisko'] = original_priezvisko
 
-    if not values['meno']:
-        errors['meno'] = 'Meno nemôže byť prázdne.'
-
-    if not values['priezvisko']:
-        errors['priezvisko'] = 'Priezvisko nemôže byť prázdne.'
-
     if len(values['meno']) > 80:
         errors['meno'] = 'Meno môže mať najviac 80 znakov.'
 
