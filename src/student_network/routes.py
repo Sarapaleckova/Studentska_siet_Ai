@@ -7,6 +7,12 @@ from uuid import uuid4
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
 from werkzeug.utils import secure_filename
 
+from student_network.file_types import (
+    ALLOWED_POST_FILE_EXTENSIONS,
+    ALLOWED_POST_IMAGE_EXTENSIONS,
+    POST_FILE_ACCEPT_VALUE,
+    post_file_types_description,
+)
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
 from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id
 from student_network.repositories.users import get_user_by_id, update_user_name
@@ -14,11 +20,6 @@ from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
 
 ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
-ALLOWED_POST_IMAGE_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
-ALLOWED_POST_FILE_EXTENSIONS = {
-    '.pdf', '.doc', '.docx', '.ppt', '.pptx', '.txt', '.rtf', '.odt', '.ods', '.odp',
-    '.xls', '.xlsx', '.csv', '.zip', '.rar', '.7z', '.jpg', '.jpeg', '.png', '.webp'
-}
 
 
 def _save_uploaded_file(uploaded_file, target_dir: Path, user_id: int) -> tuple[str, str]:
@@ -145,6 +146,8 @@ def register_routes(app: Flask) -> None:
             active_tab='pridat',
             values=values,
             errors={},
+            post_file_accept=POST_FILE_ACCEPT_VALUE,
+            post_file_types_description=post_file_types_description(),
         )
 
     @app.route('/aplikacia/pridat', methods=['POST'])
@@ -203,6 +206,8 @@ def register_routes(app: Flask) -> None:
                 active_tab='pridat',
                 values=values,
                 errors=errors,
+                post_file_accept=POST_FILE_ACCEPT_VALUE,
+                post_file_types_description=post_file_types_description(),
             )
 
         create_post(

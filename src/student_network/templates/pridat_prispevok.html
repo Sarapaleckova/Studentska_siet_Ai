@@ -32,10 +32,10 @@
             <label for="subor">Súbor (voliteľný)</label>
             <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-label="Potiahni sem súbor alebo klikni na výber súboru">
                 <p class="drop-zone-title">Potiahni sem súbor alebo klikni na výber</p>
-                <p class="drop-zone-types">PDF, Word, prezentácia, TXT a ďalšie bežné typy</p>
+                <p class="drop-zone-types">{{ post_file_types_description }}</p>
                 <p class="drop-zone-selected" id="drop-zone-selected">Žiadny súbor nie je vybraný</p>
             </div>
-            <input id="subor" name="subor" type="file" class="hidden-file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.rtf,.odt,.ods,.odp,.xls,.xlsx,.csv,.zip,.rar,.7z,.jpg,.jpeg,.png,.webp">
+            <input id="subor" name="subor" type="file" class="hidden-file-input" accept="{{ post_file_accept }}">
             <p class="form-error field-error" aria-live="polite">{{ errors.subor if errors else '' }}</p>
         </div>
 
