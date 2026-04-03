@@ -55,10 +55,20 @@ def get_all_posts() -> list[Row]:
             p.subor,
             p.subor_povodny_nazov,
             p.datum_vytvorenia,
+            COALESCE(r.average_rating, 0) AS average_rating,
+            COALESCE(r.rating_count, 0) AS rating_count,
             u.meno AS author_meno,
             u.priezvisko AS author_priezvisko
         FROM posts p
         JOIN users u ON u.id = p.author_id
+        LEFT JOIN (
+            SELECT
+                post_id,
+                AVG(rating) AS average_rating,
+                COUNT(*) AS rating_count
+            FROM post_ratings
+            GROUP BY post_id
+        ) r ON r.post_id = p.id
         ORDER BY p.id DESC
         """
     ).fetchall()
@@ -78,10 +88,20 @@ def get_post_by_id(post_id: int) -> Row | None:
             p.subor,
             p.subor_povodny_nazov,
             p.datum_vytvorenia,
+            COALESCE(r.average_rating, 0) AS average_rating,
+            COALESCE(r.rating_count, 0) AS rating_count,
             u.meno AS author_meno,
             u.priezvisko AS author_priezvisko
         FROM posts p
         JOIN users u ON u.id = p.author_id
+        LEFT JOIN (
+            SELECT
+                post_id,
+                AVG(rating) AS average_rating,
+                COUNT(*) AS rating_count
+            FROM post_ratings
+            GROUP BY post_id
+        ) r ON r.post_id = p.id
         WHERE p.id = ?
         """,
         (post_id,),

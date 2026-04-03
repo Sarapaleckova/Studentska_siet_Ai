@@ -487,6 +487,13 @@ textarea {
     color: #0b1f4d;
 }
 
+.post-rating {
+    margin: 0;
+    color: #1f2f55;
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
 .post-file-type {
     margin: 0;
     color: #2d3f67;
@@ -550,6 +557,48 @@ textarea {
 .post-detail-file-type {
     margin: 0;
     color: #ffffff;
+    font-size: 0.95rem;
+}
+
+.rating-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #f3f6ff;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.rating-form-label {
+    margin: 0;
+    color: #1b2a4f;
+    font-weight: 700;
+}
+
+.rating-stars {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.rating-star-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #1b2a4f;
+    font-weight: 600;
+}
+
+.rating-submit {
+    max-width: 220px;
+}
+
+.post-owner-note {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f3f6ff;
+    color: #1b2a4f;
     font-size: 0.95rem;
 }
 

@@ -3,6 +3,14 @@
 {% block title %}Detail príspevku{% endblock %}
 
 {% block content %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <p class="flash-message flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
 <section class="post-detail-container">
     <div class="post-detail-preview">
         {% if post.nahladovy_obrazok_url %}
@@ -18,7 +26,25 @@
         <div class="post-detail-meta">
             <p class="post-meta-item"><strong>Autor:</strong> {{ post.autor }}</p>
             <p class="post-meta-item"><strong>Dátum pridania:</strong> {{ post.datum_vytvorenia }}</p>
+            <p class="post-meta-item"><strong>Priemerné hodnotenie:</strong> {{ post.rating_text }}</p>
         </div>
+
+        {% if not is_post_owner %}
+            <form method="post" class="rating-form">
+                <p class="rating-form-label">Tvoje hodnotenie:</p>
+                <div class="rating-stars" role="radiogroup" aria-label="Hodnotenie príspevku">
+                    {% for star in [1, 2, 3, 4, 5] %}
+                        <label class="rating-star-option">
+                            <input type="radio" name="rating" value="{{ star }}" {% if current_user_rating == star %}checked{% endif %}>
+                            <span>{{ star }}★</span>
+                        </label>
+                    {% endfor %}
+                </div>
+                <button class="btn rating-submit" type="submit">Uložiť hodnotenie</button>
+            </form>
+        {% else %}
+            <p class="post-owner-note">Ako autor nemôžeš hodnotiť vlastný príspevok.</p>
+        {% endif %}
 
         <p class="post-detail-file-type"><strong>Typ súboru:</strong> {{ post.typ_suboru }}</p>
 

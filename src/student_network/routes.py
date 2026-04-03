@@ -15,6 +15,7 @@ from student_network.file_types import (
 )
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
 from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id
+from student_network.repositories.ratings import get_user_post_rating, upsert_post_rating
 from student_network.repositories.users import get_user_by_id, update_user_name
 from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
@@ -34,6 +35,12 @@ def _save_uploaded_file(uploaded_file, target_dir: Path, user_id: int) -> tuple[
     target_path = target_dir / unique_name
     uploaded_file.save(target_path)
     return unique_name, original_name
+
+
+def _format_rating(average_rating: float, rating_count: int) -> str:
+    if rating_count == 0:
+        return 'Bez hodnotenia'
+    return f"{average_rating:.1f}/5 ({rating_count})"
 
 
 def register_routes(app: Flask) -> None:
@@ -106,6 +113,9 @@ def register_routes(app: Flask) -> None:
                 'autor': f"{row['author_meno']} {row['author_priezvisko']}",
                 'subor_povodny_nazov': row['subor_povodny_nazov'],
                 'typ_suboru': _post_file_type_from_name(row['subor_povodny_nazov']) if row['subor_povodny_nazov'] else 'bez súboru',
+                'average_rating': float(row['average_rating'] or 0),
+                'rating_count': int(row['rating_count'] or 0),
+                'rating_text': _format_rating(float(row['average_rating'] or 0), int(row['rating_count'] or 0)),
                 'nahladovy_obrazok_url': url_for('static', filename=row['nahladovy_obrazok']) if row['nahladovy_obrazok'] else None,
             }
             for row in post_rows
@@ -227,13 +237,35 @@ def register_routes(app: Flask) -> None:
         flash('Príspevok bol úspešne nahratý.', 'success')
         return redirect(url_for('aplikacia_domov'))
 
-    @app.route('/aplikacia/prispevky/<int:post_id>')
+    @app.route('/aplikacia/prispevky/<int:post_id>', methods=['GET', 'POST'])
     @login_required
     def aplikacia_prispevok_detail(post_id: int) -> str:
         post_row = get_post_by_id(post_id)
         if post_row is None:
             flash('Príspevok sa nenašiel.', 'error')
             return redirect(url_for('aplikacia_domov'))
+
+        is_owner = int(post_row['author_id']) == int(g.user['id'])
+
+        if request.method == 'POST':
+            if is_owner:
+                flash('Autor príspevku nemôže hodnotiť vlastný príspevok.', 'error')
+                return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id))
+
+            try:
+                rating_value = int(request.form.get('rating', '0'))
+            except ValueError:
+                rating_value = 0
+
+            if rating_value < 1 or rating_value > 5:
+                flash('Hodnotenie musí byť od 1 do 5 hviezdičiek.', 'error')
+            else:
+                upsert_post_rating(post_id=post_id, user_id=int(g.user['id']), rating=rating_value)
+                flash('Hodnotenie bolo uložené.', 'success')
+
+            return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id))
+
+        current_user_rating = None if is_owner else get_user_post_rating(post_id=post_id, user_id=int(g.user['id']))
 
         post = {
             'id': post_row['id'],
@@ -245,12 +277,17 @@ def register_routes(app: Flask) -> None:
             'subor_url': url_for('static', filename=post_row['subor']) if post_row['subor'] else None,
             'subor_povodny_nazov': post_row['subor_povodny_nazov'],
             'typ_suboru': _post_file_type_from_name(post_row['subor_povodny_nazov']) if post_row['subor_povodny_nazov'] else 'bez súboru',
+            'average_rating': float(post_row['average_rating'] or 0),
+            'rating_count': int(post_row['rating_count'] or 0),
+            'rating_text': _format_rating(float(post_row['average_rating'] or 0), int(post_row['rating_count'] or 0)),
         }
 
         return render_template(
             'prispevok_detail.html',
             active_tab='domov',
             post=post,
+            is_post_owner=is_owner,
+            current_user_rating=current_user_rating,
         )
 
     @app.route('/aplikacia/profil', methods=['GET', 'POST'])
