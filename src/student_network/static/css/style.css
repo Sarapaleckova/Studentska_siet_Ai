@@ -322,6 +322,32 @@ textarea {
     white-space: pre-wrap;
 }
 
+.profile-post-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.profile-post-item {
+    margin: 0 0 10px 0;
+}
+
+.profile-post-link {
+    color: #0b1f4d;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.profile-post-link:hover {
+    text-decoration: underline;
+}
+
+.profile-post-date {
+    display: block;
+    margin-top: 2px;
+    color: #4a5b7a;
+    font-size: 0.9rem;
+}
+
 @media (max-width: 560px) {
     .profile-header {
         flex-direction: column;

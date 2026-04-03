@@ -86,3 +86,21 @@ def get_post_by_id(post_id: int) -> Row | None:
         """,
         (post_id,),
     ).fetchone()
+
+
+def get_posts_by_author_id(author_id: int) -> list[Row]:
+    database = get_db()
+    rows = database.execute(
+        """
+        SELECT
+            p.id,
+            p.nazov,
+            p.datum_vytvorenia,
+            p.nahladovy_obrazok
+        FROM posts p
+        WHERE p.author_id = ?
+        ORDER BY p.id DESC
+        """,
+        (author_id,),
+    ).fetchall()
+    return list(rows)

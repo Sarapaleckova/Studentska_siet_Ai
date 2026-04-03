@@ -86,4 +86,22 @@
         </form>
     {% endif %}
 </section>
+
+<section class="section-card profile-card">
+    <h2>Príspevky autora</h2>
+    {% if user_posts %}
+        <ul class="profile-post-list">
+            {% for post in user_posts %}
+                <li class="profile-post-item">
+                    <a class="profile-post-link" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id) }}">
+                        {{ post.nazov }}
+                    </a>
+                    <span class="profile-post-date">{{ post.datum_vytvorenia }}</span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Autor zatiaľ nepridal žiadne príspevky.</p>
+    {% endif %}
+</section>
 {% endblock %}

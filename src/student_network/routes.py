@@ -14,7 +14,7 @@ from student_network.file_types import (
     post_file_types_description,
 )
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
-from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id
+from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id
 from student_network.repositories.users import get_user_by_id, update_user_name
 from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
@@ -251,6 +251,15 @@ def register_routes(app: Flask) -> None:
     def aplikacia_profil() -> str:
         errors: dict[str, str] = {}
         edit_mode = request.args.get('edit') == '1'
+        user_posts_rows = get_posts_by_author_id(int(g.user['id']))
+        user_posts = [
+            {
+                'id': row['id'],
+                'nazov': row['nazov'],
+                'datum_vytvorenia': row['datum_vytvorenia'].replace('T', ' '),
+            }
+            for row in user_posts_rows
+        ]
         profile = get_profile_by_user_id(int(g.user['id']))
         profile_values = profile_values_from_row(profile)
         values = profile_form_values(g.user, profile)
@@ -310,4 +319,5 @@ def register_routes(app: Flask) -> None:
             values=values,
             errors=errors,
             edit_mode=edit_mode,
+            user_posts=user_posts,
         )
