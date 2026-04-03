@@ -93,7 +93,7 @@
         <ul class="profile-post-list">
             {% for post in user_posts %}
                 <li class="profile-post-item">
-                    <a class="profile-post-link" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id) }}">
+                    <a class="profile-post-link" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug) }}">
                         {{ post.nazov }}
                     </a>
                     <span class="profile-post-date">{{ post.datum_vytvorenia }}</span>

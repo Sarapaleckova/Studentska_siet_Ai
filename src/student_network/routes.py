@@ -2,6 +2,8 @@
 
 from functools import wraps
 from pathlib import Path
+import re
+import unicodedata
 from uuid import uuid4
 
 from flask import Flask, flash, g, redirect, render_template, request, session, url_for
@@ -21,6 +23,7 @@ from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
 
 ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+APP_BASE_PATH = '/studentska-siet'
 
 
 def _post_file_type_from_name(file_name: str) -> str:
@@ -35,6 +38,13 @@ def _save_uploaded_file(uploaded_file, target_dir: Path, user_id: int) -> tuple[
     target_path = target_dir / unique_name
     uploaded_file.save(target_path)
     return unique_name, original_name
+
+
+def _slugify(text: str) -> str:
+    normalized = unicodedata.normalize('NFKD', text)
+    ascii_text = normalized.encode('ascii', 'ignore').decode('ascii')
+    slug = re.sub(r'[^a-z0-9]+', '-', ascii_text.lower()).strip('-')
+    return slug or 'prispevok'
 
 
 def _format_rating(average_rating: float, rating_count: int) -> str:
@@ -60,10 +70,14 @@ def register_routes(app: Flask) -> None:
         return wrapped_view
 
     @app.route('/')
+    def root_redirect() -> str:
+        return redirect(url_for('index'))
+
+    @app.route(APP_BASE_PATH)
     def index() -> str:
         return render_template('index.html')
 
-    @app.route('/prihlasenie', methods=['GET', 'POST'])
+    @app.route(f'{APP_BASE_PATH}/prihlasenie', methods=['GET', 'POST'])
     def prihlasenie() -> str:
         errors: dict[str, str] = {}
         values = {'email': ''}
@@ -78,7 +92,7 @@ def register_routes(app: Flask) -> None:
 
         return render_template('prihlasenie.html', errors=errors, values=values)
 
-    @app.route('/registracia', methods=['GET', 'POST'])
+    @app.route(f'{APP_BASE_PATH}/registracia', methods=['GET', 'POST'])
     def registracia() -> str:
         errors: dict[str, str] = {}
         values = {
@@ -96,13 +110,12 @@ def register_routes(app: Flask) -> None:
 
         return render_template('registracia.html', errors=errors, values=values)
 
-    @app.route('/odhlasenie')
+    @app.route(f'{APP_BASE_PATH}/odhlasenie')
     def odhlasenie() -> str:
         session.clear()
         return redirect(url_for('index'))
 
-    @app.route('/aplikacia')
-    @app.route('/aplikacia/domov')
+    @app.route(f'{APP_BASE_PATH}/domov')
     @login_required
     def aplikacia_domov() -> str:
         post_rows = get_all_posts()
@@ -110,6 +123,7 @@ def register_routes(app: Flask) -> None:
             {
                 'id': row['id'],
                 'nazov': row['nazov'],
+                'post_slug': _slugify(row['nazov']),
                 'autor': f"{row['author_meno']} {row['author_priezvisko']}",
                 'subor_povodny_nazov': row['subor_povodny_nazov'],
                 'typ_suboru': _post_file_type_from_name(row['subor_povodny_nazov']) if row['subor_povodny_nazov'] else 'bez súboru',
@@ -126,7 +140,7 @@ def register_routes(app: Flask) -> None:
             posts=posts,
         )
 
-    @app.route('/aplikacia/skupiny')
+    @app.route(f'{APP_BASE_PATH}/skupiny')
     @login_required
     def aplikacia_skupiny() -> str:
         return render_template(
@@ -138,7 +152,7 @@ def register_routes(app: Flask) -> None:
             search_placeholder='Hľadať skupiny...'
         )
 
-    @app.route('/aplikacia/hladat')
+    @app.route(f'{APP_BASE_PATH}/hladat')
     @login_required
     def aplikacia_hladat() -> str:
         return render_template(
@@ -150,7 +164,7 @@ def register_routes(app: Flask) -> None:
             search_placeholder='Hľadať...'
         )
 
-    @app.route('/aplikacia/pridat')
+    @app.route(f'{APP_BASE_PATH}/pridat')
     @login_required
     def aplikacia_pridat() -> str:
         values = {
@@ -166,7 +180,7 @@ def register_routes(app: Flask) -> None:
             post_file_types_description=post_file_types_description(),
         )
 
-    @app.route('/aplikacia/pridat', methods=['POST'])
+    @app.route(f'{APP_BASE_PATH}/pridat', methods=['POST'])
     @login_required
     def aplikacia_pridat_submit() -> str:
         errors: dict[str, str] = {}
@@ -237,20 +251,24 @@ def register_routes(app: Flask) -> None:
         flash('Príspevok bol úspešne nahratý.', 'success')
         return redirect(url_for('aplikacia_domov'))
 
-    @app.route('/aplikacia/prispevky/<int:post_id>', methods=['GET', 'POST'])
+    @app.route(f'{APP_BASE_PATH}/prispevky/<int:post_id>/<post_slug>', methods=['GET', 'POST'])
     @login_required
-    def aplikacia_prispevok_detail(post_id: int) -> str:
+    def aplikacia_prispevok_detail(post_id: int, post_slug: str) -> str:
         post_row = get_post_by_id(post_id)
         if post_row is None:
             flash('Príspevok sa nenašiel.', 'error')
             return redirect(url_for('aplikacia_domov'))
+
+        canonical_post_slug = _slugify(post_row['nazov'])
+        if post_slug != canonical_post_slug and request.method == 'GET':
+            return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
 
         is_owner = int(post_row['author_id']) == int(g.user['id'])
 
         if request.method == 'POST':
             if is_owner:
                 flash('Autor príspevku nemôže hodnotiť vlastný príspevok.', 'error')
-                return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id))
+                return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
 
             try:
                 rating_value = int(request.form.get('rating', '0'))
@@ -263,7 +281,7 @@ def register_routes(app: Flask) -> None:
                 upsert_post_rating(post_id=post_id, user_id=int(g.user['id']), rating=rating_value)
                 flash('Hodnotenie bolo uložené.', 'success')
 
-            return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id))
+            return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
 
         current_user_rating = None if is_owner else get_user_post_rating(post_id=post_id, user_id=int(g.user['id']))
 
@@ -277,6 +295,7 @@ def register_routes(app: Flask) -> None:
             'subor_url': url_for('static', filename=post_row['subor']) if post_row['subor'] else None,
             'subor_povodny_nazov': post_row['subor_povodny_nazov'],
             'typ_suboru': _post_file_type_from_name(post_row['subor_povodny_nazov']) if post_row['subor_povodny_nazov'] else 'bez súboru',
+            'post_slug': canonical_post_slug,
             'average_rating': float(post_row['average_rating'] or 0),
             'rating_count': int(post_row['rating_count'] or 0),
             'rating_text': _format_rating(float(post_row['average_rating'] or 0), int(post_row['rating_count'] or 0)),
@@ -290,7 +309,7 @@ def register_routes(app: Flask) -> None:
             current_user_rating=current_user_rating,
         )
 
-    @app.route('/aplikacia/profil', methods=['GET', 'POST'])
+    @app.route(f'{APP_BASE_PATH}/profil', methods=['GET', 'POST'])
     @login_required
     def aplikacia_profil() -> str:
         errors: dict[str, str] = {}
@@ -300,6 +319,7 @@ def register_routes(app: Flask) -> None:
             {
                 'id': row['id'],
                 'nazov': row['nazov'],
+                'post_slug': _slugify(row['nazov']),
                 'datum_vytvorenia': row['datum_vytvorenia'].replace('T', ' '),
             }
             for row in user_posts_rows
