@@ -487,6 +487,13 @@ textarea {
     color: #0b1f4d;
 }
 
+.post-file-type {
+    margin: 0;
+    color: #2d3f67;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
 .post-card-author {
     margin: 0;
     color: #1a2540;
@@ -538,6 +545,12 @@ textarea {
 .post-meta-item {
     margin: 0;
     color: #ffffff;
+}
+
+.post-detail-file-type {
+    margin: 0;
+    color: #ffffff;
+    font-size: 0.95rem;
 }
 
 .post-detail-description-wrap {

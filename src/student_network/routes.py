@@ -22,6 +22,11 @@ from student_network.services.profile_service import profile_form_values, profil
 ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 
 
+def _post_file_type_from_name(file_name: str) -> str:
+    extension = Path(file_name).suffix.lower()
+    return extension if extension else 'bez prípony'
+
+
 def _save_uploaded_file(uploaded_file, target_dir: Path, user_id: int) -> tuple[str, str]:
     original_name = secure_filename(uploaded_file.filename)
     extension = Path(original_name).suffix.lower()
@@ -100,6 +105,7 @@ def register_routes(app: Flask) -> None:
                 'nazov': row['nazov'],
                 'autor': f"{row['author_meno']} {row['author_priezvisko']}",
                 'subor_povodny_nazov': row['subor_povodny_nazov'],
+                'typ_suboru': _post_file_type_from_name(row['subor_povodny_nazov']) if row['subor_povodny_nazov'] else 'bez súboru',
                 'nahladovy_obrazok_url': url_for('static', filename=row['nahladovy_obrazok']) if row['nahladovy_obrazok'] else None,
             }
             for row in post_rows
@@ -238,6 +244,7 @@ def register_routes(app: Flask) -> None:
             'nahladovy_obrazok_url': url_for('static', filename=post_row['nahladovy_obrazok']) if post_row['nahladovy_obrazok'] else None,
             'subor_url': url_for('static', filename=post_row['subor']) if post_row['subor'] else None,
             'subor_povodny_nazov': post_row['subor_povodny_nazov'],
+            'typ_suboru': _post_file_type_from_name(post_row['subor_povodny_nazov']) if post_row['subor_povodny_nazov'] else 'bez súboru',
         }
 
         return render_template(

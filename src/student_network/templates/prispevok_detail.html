@@ -20,6 +20,8 @@
             <p class="post-meta-item"><strong>Dátum pridania:</strong> {{ post.datum_vytvorenia }}</p>
         </div>
 
+        <p class="post-detail-file-type"><strong>Typ súboru:</strong> {{ post.typ_suboru }}</p>
+
         <div class="post-detail-description-wrap">
             <p class="post-detail-description">{{ post.popis if post.popis else 'Bez popisu.' }}</p>
         </div>
