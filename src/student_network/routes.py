@@ -54,6 +54,18 @@ def _format_rating(average_rating: float, rating_count: int) -> str:
     return f"{average_rating:.1f}/5 ({rating_count})"
 
 
+def _build_rating_stars(average_rating: float) -> list[str]:
+    stars: list[str] = []
+    for star in range(1, 6):
+        if average_rating >= star:
+            stars.append('filled')
+        elif average_rating >= star - 0.5:
+            stars.append('half')
+        else:
+            stars.append('empty')
+    return stars
+
+
 def _build_comment_tree(comment_rows) -> list[dict]:
     comments_by_id: dict[int, dict] = {}
     root_comments: list[dict] = []
@@ -373,6 +385,7 @@ def register_routes(app: Flask) -> None:
             'average_rating': float(post_row['average_rating'] or 0),
             'rating_count': int(post_row['rating_count'] or 0),
             'rating_text': _format_rating(float(post_row['average_rating'] or 0), int(post_row['rating_count'] or 0)),
+            'rating_stars': _build_rating_stars(float(post_row['average_rating'] or 0)),
         }
 
         return render_template(
@@ -384,6 +397,7 @@ def register_routes(app: Flask) -> None:
             comments_tree=comments_tree,
             comment_errors=comment_errors,
             comment_form_values=comment_form_values,
+            comments_modal_open=bool(comment_errors),
         )
 
     @app.route(f'{APP_BASE_PATH}/profil', methods=['GET', 'POST'])

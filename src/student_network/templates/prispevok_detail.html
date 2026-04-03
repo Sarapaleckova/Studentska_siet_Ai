@@ -26,7 +26,19 @@
         <div class="post-detail-meta">
             <p class="post-meta-item"><strong>Autor:</strong> {{ post.autor }}</p>
             <p class="post-meta-item"><strong>Dátum pridania:</strong> {{ post.datum_vytvorenia }}</p>
-            <p class="post-meta-item"><strong>Priemerné hodnotenie:</strong> {{ post.rating_text }}</p>
+            <p class="post-meta-item"><strong>Typ súboru:</strong> {{ post.typ_suboru }}</p>
+        </div>
+
+        <div class="post-detail-toolbar">
+            <button class="btn btn-comments-toggle" type="button" data-comments-modal-open>Komentáre</button>
+            <div class="post-rating-summary" aria-label="Priemerné hodnotenie príspevku">
+                <div class="rating-stars rating-stars-summary" aria-hidden="true">
+                    {% for star_state in post.rating_stars %}
+                        <span class="rating-star-symbol rating-star-symbol-{{ star_state }}">★</span>
+                    {% endfor %}
+                </div>
+                <p class="post-rating-summary-text">{{ post.rating_text }}</p>
+            </div>
         </div>
 
         {% if not is_post_owner %}
@@ -47,76 +59,9 @@
             <p class="post-owner-note">Ako autor nemôžeš hodnotiť vlastný príspevok.</p>
         {% endif %}
 
-        <p class="post-detail-file-type"><strong>Typ súboru:</strong> {{ post.typ_suboru }}</p>
-
         <div class="post-detail-description-wrap">
             <p class="post-detail-description">{{ post.popis if post.popis else 'Bez popisu.' }}</p>
         </div>
-
-        <section class="comments-section" id="komentare">
-            <h2>Komentáre</h2>
-
-            {% if comment_errors %}
-                <p class="form-error comment-section-error" aria-live="polite">
-                    {{ comment_errors.text if comment_errors.text else comment_errors.parent_comment_id }}
-                </p>
-            {% endif %}
-
-            <form method="post" class="comment-form">
-                <input type="hidden" name="action_type" value="comment">
-                <input type="hidden" name="parent_comment_id" value="">
-                <div class="field">
-                    <label for="comment-text">Nový komentár</label>
-                    <textarea id="comment-text" name="text" rows="4" maxlength="2000" placeholder="Napíšte komentár...">{{ comment_form_values.text }}</textarea>
-                    <p class="form-error field-error" aria-live="polite">{{ comment_errors.text if comment_errors else '' }}</p>
-                </div>
-                <div class="actions comment-actions">
-                    <button class="btn" type="submit">Pridať komentár</button>
-                </div>
-            </form>
-
-            {% if comments_tree %}
-                <div class="comments-list">
-                    {% macro render_comment(comment) %}
-                        <article class="comment-item">
-                            <div class="comment-meta">
-                                <strong>{{ comment.author }}</strong>
-                                <span>{{ comment.created_at }}</span>
-                            </div>
-                            <p class="comment-text">{{ comment.text }}</p>
-
-                            <details class="comment-reply-details">
-                                <summary>Odpovedať</summary>
-                                <form method="post" class="comment-form comment-reply-form">
-                                    <input type="hidden" name="action_type" value="comment">
-                                    <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
-                                    <div class="field">
-                                        <textarea name="text" rows="3" maxlength="2000" placeholder="Napíšte odpoveď...">{{ comment_form_values.text if comment_form_values.parent_comment_id == comment.id|string else '' }}</textarea>
-                                    </div>
-                                    <div class="actions comment-actions">
-                                        <button class="btn" type="submit">Odoslať odpoveď</button>
-                                    </div>
-                                </form>
-                            </details>
-
-                            {% if comment.children %}
-                                <div class="comment-children">
-                                    {% for child in comment.children %}
-                                        {{ render_comment(child) }}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </article>
-                    {% endmacro %}
-
-                    {% for comment in comments_tree %}
-                        {{ render_comment(comment) }}
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="empty-comments">Zatiaľ nie sú pridané žiadne komentáre.</p>
-            {% endif %}
-        </section>
 
         <div class="post-detail-actions">
             <a class="btn btn-back" href="{{ url_for('aplikacia_domov') }}">Odísť</a>
@@ -128,4 +73,134 @@
         </div>
     </div>
 </section>
+
+<section class="comments-modal{% if comments_modal_open %} is-open{% endif %}" id="comments-modal" aria-hidden="{{ 'false' if comments_modal_open else 'true' }}">
+    <div class="comments-modal-backdrop" data-comments-modal-close></div>
+    <div class="comments-modal-panel" role="dialog" aria-modal="true" aria-labelledby="comments-modal-title">
+        <button class="comments-modal-close" type="button" aria-label="Zavrieť komentáre" data-comments-modal-close>×</button>
+
+        <div class="comments-modal-header">
+            <h2 id="comments-modal-title">Komentáre</h2>
+            <p>Prehľad komentárov a odpovedí k príspevku.</p>
+        </div>
+
+        {% if comment_errors %}
+            <p class="form-error comment-section-error" aria-live="polite">
+                {{ comment_errors.text if comment_errors.text else comment_errors.parent_comment_id }}
+            </p>
+        {% endif %}
+
+        <form method="post" class="comment-form comment-form-main">
+            <input type="hidden" name="action_type" value="comment">
+            <input type="hidden" name="parent_comment_id" value="">
+            <div class="field">
+                <label for="comment-text">Nový komentár</label>
+                <textarea id="comment-text" name="text" rows="4" maxlength="2000" placeholder="Napíšte komentár...">{{ comment_form_values.text if comment_form_values.parent_comment_id == '' else '' }}</textarea>
+                <p class="form-error field-error" aria-live="polite">{{ comment_errors.text if comment_errors and comment_form_values.parent_comment_id == '' else '' }}</p>
+            </div>
+            <div class="actions comment-actions">
+                <button class="btn" type="submit">Pridať komentár</button>
+            </div>
+        </form>
+
+        {% if comments_tree %}
+            <div class="comments-list comments-modal-list">
+                {% macro render_comment(comment) %}
+                    <article class="comment-item">
+                        <div class="comment-meta">
+                            <strong>{{ comment.author }}</strong>
+                            <span>{{ comment.created_at }}</span>
+                        </div>
+                        <p class="comment-text">{{ comment.text }}</p>
+
+                        <details class="comment-reply-details"{% if comment_form_values.parent_comment_id == comment.id|string %} open{% endif %}>
+                            <summary>Odpovedať</summary>
+                            <form method="post" class="comment-form comment-reply-form">
+                                <input type="hidden" name="action_type" value="comment">
+                                <input type="hidden" name="parent_comment_id" value="{{ comment.id }}">
+                                <div class="field">
+                                    <textarea name="text" rows="3" maxlength="2000" placeholder="Napíšte odpoveď...">{{ comment_form_values.text if comment_form_values.parent_comment_id == comment.id|string else '' }}</textarea>
+                                    <p class="form-error field-error" aria-live="polite">{{ comment_errors.text if comment_errors and comment_form_values.parent_comment_id == comment.id|string else '' }}</p>
+                                </div>
+                                <div class="actions comment-actions">
+                                    <button class="btn" type="submit">Odoslať odpoveď</button>
+                                </div>
+                            </form>
+                        </details>
+
+                        {% if comment.children %}
+                            <div class="comment-children">
+                                {% for child in comment.children %}
+                                    {{ render_comment(child) }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </article>
+                {% endmacro %}
+
+                {% for comment in comments_tree %}
+                    {{ render_comment(comment) }}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-comments">Zatiaľ nie sú pridané žiadne komentáre.</p>
+        {% endif %}
+    </div>
+</section>
+
+{% block scripts %}
+<script>
+(function () {
+    const modal = document.getElementById('comments-modal');
+    const openButtons = document.querySelectorAll('[data-comments-modal-open]');
+    const closeTargets = modal ? modal.querySelectorAll('[data-comments-modal-close]') : [];
+
+    if (!modal) {
+        return;
+    }
+
+    const openModal = () => {
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    };
+
+    const closeModal = () => {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+        if (window.location.hash === '#komentare') {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
+    };
+
+    openButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            openModal();
+            window.history.replaceState(null, '', window.location.pathname + window.location.search + '#komentare');
+        });
+    });
+
+    closeTargets.forEach((target) => {
+        target.addEventListener('click', closeModal);
+    });
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+            closeModal();
+        }
+    });
+
+    if (window.location.hash === '#komentare' || {{ 'true' if comments_modal_open else 'false' }}) {
+        openModal();
+    }
+})();
+</script>
+{% endblock %}
 {% endblock %}

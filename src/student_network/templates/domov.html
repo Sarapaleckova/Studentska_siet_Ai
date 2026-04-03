@@ -29,13 +29,8 @@
         </div>
         <div class="post-card-info">
             <h3 class="post-card-title">{{ post.nazov }}</h3>
-            <p class="post-rating">Hodnotenie: {{ post.rating_text }}</p>
             <p class="post-file-type">Typ súboru: {{ post.typ_suboru }}</p>
             <p class="post-card-author">Autor: {{ post.autor }}</p>
-            <div class="post-card-actions-left">
-                <a class="btn btn-card-action" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug, _anchor='hodnotenie') }}">Ohodnotiť</a>
-                <a class="btn btn-card-action" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug, _anchor='komentare') }}">Komentáre</a>
-            </div>
         </div>
     </a>
     {% endfor %}
