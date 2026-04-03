@@ -118,7 +118,7 @@ textarea {
 
 .app-content {
     flex: 1;
-    padding: 24px 16px 88px 16px;
+    padding: 86px 16px 88px 16px;
     box-sizing: border-box;
     width: 100%;
     max-width: 680px;
@@ -134,11 +134,37 @@ textarea {
     color: #dbe4ff;
 }
 
-.exit-link {
+.top-nav {
     position: fixed;
-    top: 12px;
-    right: 12px;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 10;
+    background: #071433;
+    border-bottom: 1px solid #1a2f63;
+}
+
+.top-nav-inner {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    min-height: 62px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.app-title {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.exit-link {
     display: inline-block;
     padding: 8px 14px;
     border-radius: 8px;

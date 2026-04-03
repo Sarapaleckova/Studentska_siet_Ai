@@ -7,7 +7,12 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="page page-app">
-    <a class="exit-link" id="logout-link" href="{{ url_for('odhlasenie') }}">Odhlásiť sa</a>
+    <header class="top-nav">
+        <div class="top-nav-inner">
+            <a class="app-title" href="{{ url_for('aplikacia_domov') }}">Študentská sieť</a>
+            <a class="exit-link" id="logout-link" href="{{ url_for('odhlasenie') }}">Odhlásiť sa</a>
+        </div>
+    </header>
 
     <main class="app-content">
         {% block content %}{% endblock %}
