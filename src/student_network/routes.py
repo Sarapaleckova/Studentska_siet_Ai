@@ -15,6 +15,7 @@ from student_network.file_types import (
     POST_FILE_ACCEPT_VALUE,
     post_file_types_description,
 )
+from student_network.repositories.comments import create_post_comment, get_post_comment_by_id, get_post_comments
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
 from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id
 from student_network.repositories.ratings import get_user_post_rating, upsert_post_rating
@@ -51,6 +52,33 @@ def _format_rating(average_rating: float, rating_count: int) -> str:
     if rating_count == 0:
         return 'Bez hodnotenia'
     return f"{average_rating:.1f}/5 ({rating_count})"
+
+
+def _build_comment_tree(comment_rows) -> list[dict]:
+    comments_by_id: dict[int, dict] = {}
+    root_comments: list[dict] = []
+
+    for row in comment_rows:
+        comment = {
+            'id': row['id'],
+            'post_id': row['post_id'],
+            'user_id': row['user_id'],
+            'parent_comment_id': row['parent_comment_id'],
+            'text': row['text'],
+            'created_at': row['created_at'].replace('T', ' '),
+            'author': f"{row['author_meno']} {row['author_priezvisko']}",
+            'children': [],
+        }
+        comments_by_id[comment['id']] = comment
+
+    for comment in comments_by_id.values():
+        parent_id = comment['parent_comment_id']
+        if parent_id and parent_id in comments_by_id:
+            comments_by_id[parent_id]['children'].append(comment)
+        else:
+            root_comments.append(comment)
+
+    return root_comments
 
 
 def register_routes(app: Flask) -> None:
@@ -265,25 +293,71 @@ def register_routes(app: Flask) -> None:
 
         is_owner = int(post_row['author_id']) == int(g.user['id'])
 
+        comment_errors: dict[str, str] = {}
+        comment_form_values = {
+            'text': '',
+            'parent_comment_id': '',
+        }
+
         if request.method == 'POST':
-            if is_owner:
-                flash('Autor príspevku nemôže hodnotiť vlastný príspevok.', 'error')
+            action_type = request.form.get('action_type', '')
+
+            if action_type == 'rating':
+                if is_owner:
+                    flash('Autor príspevku nemôže hodnotiť vlastný príspevok.', 'error')
+                    return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
+
+                try:
+                    rating_value = int(request.form.get('rating', '0'))
+                except ValueError:
+                    rating_value = 0
+
+                if rating_value < 1 or rating_value > 5:
+                    flash('Hodnotenie musí byť od 1 do 5 hviezdičiek.', 'error')
+                else:
+                    upsert_post_rating(post_id=post_id, user_id=int(g.user['id']), rating=rating_value)
+                    flash('Hodnotenie bolo uložené.', 'success')
+
+                return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug, _anchor='hodnotenie'))
+
+            if action_type == 'comment':
+                comment_text = request.form.get('text', '').strip()
+                parent_comment_raw = request.form.get('parent_comment_id', '').strip()
+                comment_form_values['text'] = comment_text
+                comment_form_values['parent_comment_id'] = parent_comment_raw
+
+                if not comment_text:
+                    comment_errors['text'] = 'Komentár nemôže byť prázdny.'
+                elif len(comment_text) > 2000:
+                    comment_errors['text'] = 'Komentár môže mať najviac 2000 znakov.'
+
+                parent_comment_id = None
+                if parent_comment_raw:
+                    try:
+                        parent_comment_id = int(parent_comment_raw)
+                    except ValueError:
+                        comment_errors['parent_comment_id'] = 'Neplatná odpoveď na komentár.'
+                    else:
+                        parent_comment_row = get_post_comment_by_id(post_id, parent_comment_id)
+                        if parent_comment_row is None:
+                            comment_errors['parent_comment_id'] = 'Pôvodný komentár sa nenašiel.'
+
+                if not comment_errors:
+                    create_post_comment(
+                        post_id=post_id,
+                        user_id=int(g.user['id']),
+                        text=comment_text,
+                        parent_comment_id=parent_comment_id,
+                    )
+                    flash('Komentár bol uložený.', 'success')
+                    return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug, _anchor='komentare'))
+
+            else:
+                flash('Neplatná akcia.', 'error')
                 return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
 
-            try:
-                rating_value = int(request.form.get('rating', '0'))
-            except ValueError:
-                rating_value = 0
-
-            if rating_value < 1 or rating_value > 5:
-                flash('Hodnotenie musí byť od 1 do 5 hviezdičiek.', 'error')
-            else:
-                upsert_post_rating(post_id=post_id, user_id=int(g.user['id']), rating=rating_value)
-                flash('Hodnotenie bolo uložené.', 'success')
-
-            return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
-
         current_user_rating = None if is_owner else get_user_post_rating(post_id=post_id, user_id=int(g.user['id']))
+        comments_tree = _build_comment_tree(get_post_comments(post_id))
 
         post = {
             'id': post_row['id'],
@@ -307,6 +381,9 @@ def register_routes(app: Flask) -> None:
             post=post,
             is_post_owner=is_owner,
             current_user_rating=current_user_rating,
+            comments_tree=comments_tree,
+            comment_errors=comment_errors,
+            comment_form_values=comment_form_values,
         )
 
     @app.route(f'{APP_BASE_PATH}/profil', methods=['GET', 'POST'])

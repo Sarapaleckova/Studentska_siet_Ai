@@ -480,6 +480,20 @@ textarea {
     gap: 8px;
 }
 
+.post-card-actions-left {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    margin-top: 4px;
+}
+
+.btn-card-action {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+
 .post-card-title {
     margin: 0;
     font-size: 1.2rem;
@@ -618,6 +632,93 @@ textarea {
 .post-detail-actions {
     display: flex;
     gap: 12px;
+}
+
+.comments-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 12px;
+    background: #f7f9fc;
+}
+
+.comments-section h2 {
+    margin: 0;
+    color: #0b1f4d;
+}
+
+.comment-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #d9e2f3;
+}
+
+.comment-actions {
+    margin-top: 0;
+}
+
+.comments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.comment-item {
+    padding: 12px;
+    border-radius: 10px;
+    background: #ffffff;
+    border: 1px solid #d9e2f3;
+}
+
+.comment-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: baseline;
+    color: #1b2a4f;
+    margin-bottom: 8px;
+}
+
+.comment-meta span {
+    color: #4a5b7a;
+    font-size: 0.9rem;
+}
+
+.comment-text {
+    margin: 0 0 10px 0;
+    color: #1a2540;
+    white-space: pre-wrap;
+}
+
+.comment-reply-details summary {
+    cursor: pointer;
+    color: #0b1f4d;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.comment-reply-form {
+    margin-top: 10px;
+}
+
+.comment-children {
+    margin-top: 12px;
+    margin-left: 18px;
+    padding-left: 14px;
+    border-left: 3px solid #d9e2f3;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.empty-comments {
+    margin: 0;
+    color: #4a5b7a;
 }
 
 .btn-back,
