@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="page page-app">
-    <a class="exit-link" href="{{ url_for('odhlasenie') }}">Odísť</a>
+    <a class="exit-link" id="logout-link" href="{{ url_for('odhlasenie') }}">Odhlásiť sa</a>
 
     <main class="app-content">
         {% block content %}{% endblock %}
@@ -20,5 +20,21 @@
         <a class="nav-item {% if active_tab == 'pridat' %}active{% endif %}" href="{{ url_for('aplikacia_pridat') }}">Pridať</a>
         <a class="nav-item {% if active_tab == 'profil' %}active{% endif %}" href="{{ url_for('aplikacia_profil') }}">Profil</a>
     </nav>
+
+    <script>
+    (function () {
+        const logoutLink = document.getElementById('logout-link');
+        if (!logoutLink) {
+            return;
+        }
+
+        logoutLink.addEventListener('click', function (event) {
+            const confirmed = window.confirm('Naozaj sa chcete odhlásiť?');
+            if (!confirmed) {
+                event.preventDefault();
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
