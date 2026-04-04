@@ -160,7 +160,8 @@
 
                 <div class="field">
                     <label for="group-event-date">Dátum</label>
-                    <input id="group-event-date" name="event_date" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}$" required>
+                    <input id="group-event-date" name="event_date" type="text" inputmode="numeric" autocomplete="off" placeholder="DD/MM/YYYY" pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}$" required>
+                    <p class="event-input-hint">Formát: DD/MM/YYYY</p>
                 </div>
 
                 <div class="field">
@@ -216,14 +217,53 @@
     const flashMessages = document.querySelectorAll('[data-group-flash="1"]');
 
     const toDisplayDate = function (isoDate) {
-        if (!isoDate || isoDate.indexOf('-') === -1) {
+        if (!isoDate) {
             return isoDate || '';
         }
+
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(isoDate)) {
+            return isoDate;
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+            const isoParts = isoDate.split('-');
+            return isoParts[2] + '/' + isoParts[1] + '/' + isoParts[0];
+        }
+
+        const usLike = isoDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (usLike) {
+            const first = usLike[1].padStart(2, '0');
+            const second = usLike[2].padStart(2, '0');
+            const year = usLike[3];
+            if (Number(first) > 12 && Number(second) <= 12) {
+                return first + '/' + second + '/' + year;
+            }
+            if (Number(second) > 12 && Number(first) <= 12) {
+                return second + '/' + first + '/' + year;
+            }
+            return first + '/' + second + '/' + year;
+        }
+
+        if (isoDate.indexOf('-') === -1) {
+            return isoDate;
+        }
+
         const parts = isoDate.split('-');
         if (parts.length !== 3) {
             return isoDate;
         }
         return parts[2] + '/' + parts[1] + '/' + parts[0];
+    };
+
+    const normalizeDateTyping = function (rawValue) {
+        const digits = (rawValue || '').replace(/\D/g, '').slice(0, 8);
+        if (digits.length <= 2) {
+            return digits;
+        }
+        if (digits.length <= 4) {
+            return digits.slice(0, 2) + '/' + digits.slice(2);
+        }
+        return digits.slice(0, 2) + '/' + digits.slice(2, 4) + '/' + digits.slice(4);
     };
 
     const setActiveTab = function (tabName, updateUrl) {
@@ -269,6 +309,16 @@
 
     if (!eventModal) {
         return;
+    }
+
+    if (eventDate) {
+        eventDate.addEventListener('input', function () {
+            eventDate.value = normalizeDateTyping(eventDate.value);
+        });
+
+        eventDate.addEventListener('blur', function () {
+            eventDate.value = toDisplayDate(eventDate.value.trim());
+        });
     }
 
     const closeEventModal = function () {
