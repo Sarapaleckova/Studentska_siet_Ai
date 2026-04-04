@@ -282,3 +282,26 @@ def count_group_admins(group_id: int) -> int:
         (group_id,),
     ).fetchone()
     return int(row['cnt']) if row is not None else 0
+
+
+def bulk_update_member_roles(group_id: int, role: str, exclude_user_id: int | None = None) -> None:
+    database = get_db()
+    if exclude_user_id is None:
+        database.execute(
+            """
+            UPDATE group_memberships
+            SET role = ?
+            WHERE group_id = ? AND status = 'member'
+            """,
+            (role, group_id),
+        )
+    else:
+        database.execute(
+            """
+            UPDATE group_memberships
+            SET role = ?
+            WHERE group_id = ? AND status = 'member' AND user_id != ?
+            """,
+            (role, group_id, exclude_user_id),
+        )
+    database.commit()

@@ -1135,6 +1135,17 @@ body.modal-open {
     font-size: 0.87rem;
 }
 
+.group-role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eaf1ff;
+    color: #132a56;
+    font-weight: 700;
+    cursor: help;
+}
+
 .group-member-controls {
     margin-top: 10px;
     display: flex;
@@ -1442,13 +1453,29 @@ body.modal-open {
     color: #132a56;
 }
 
+.role-mode-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.role-mode-button.active {
+    background: #102246;
+    color: #ffffff;
+}
+
+.role-edit-form {
+    margin-top: 10px;
+}
+
 .group-bottom-nav {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0;
     border-top: 1px solid #1a2f63;
     background: #071433;
@@ -1474,6 +1501,20 @@ body.modal-open {
 .group-nav-item.active {
     background: #102246;
     color: #ffffff;
+}
+
+.group-nav-link-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    line-height: 1;
+    gap: 4px;
+}
+
+.group-nav-gear {
+    font-size: 1rem;
 }
 
 .group-detail-image-wrap {
@@ -1547,5 +1588,9 @@ body.modal-open {
 
     .calendar-week-name {
         font-size: 0.75rem;
+    }
+
+    .role-mode-buttons {
+        grid-template-columns: 1fr;
     }
 }

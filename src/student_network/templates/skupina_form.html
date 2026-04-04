@@ -18,6 +18,7 @@
 
 <section class="section-card profile-card">
     <form method="post" enctype="multipart/form-data" class="group-settings-form">
+        <input type="hidden" name="settings_action" value="group">
         {% if group_photo_url %}
             <div class="group-settings-photo-preview">
                 <img src="{{ group_photo_url }}" alt="Fotka skupiny" class="group-settings-photo-image">
@@ -65,4 +66,102 @@
         </div>
     </form>
 </section>
+
+{% if is_edit %}
+<section class="section-card profile-card">
+    <h2>Role</h2>
+    <p class="group-tab-note">Role sa menia iba v nastaveniach skupiny.</p>
+
+    <div class="role-mode-buttons">
+        <button type="button" class="btn role-mode-button active" data-role-mode="member">Priradiť konkrétnemu členovi</button>
+        <button type="button" class="btn role-mode-button" data-role-mode="all">Priradiť rolu všetkým</button>
+    </div>
+
+    <div class="role-mode-panel" data-role-panel="member">
+        {% if members %}
+            <div class="group-member-list">
+                {% for member in members %}
+                    <article class="group-member-item">
+                        <div class="group-member-profile">
+                            <div class="avatar-wrap" aria-hidden="true">
+                                {% if member.photo_url %}
+                                    <img class="avatar-image" src="{{ member.photo_url }}" alt="Profilová fotka {{ member.full_name }}">
+                                {% else %}
+                                    <div class="avatar-fallback"></div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="group-member-name">{{ member.full_name }}{% if member.is_current_user %} (Vy){% endif %}</p>
+                                <p class="group-member-meta">
+                                    Aktuálna rola:
+                                    {% if member.role == 'admin' %}
+                                        <span class="group-role-badge" title="Administrátor: plný prístup k správe skupiny, mení nastavenia, role, schvaľuje žiadosti a odstraňuje členov.">Administrátor</span>
+                                    {% else %}
+                                        <span class="group-role-badge" title="Člen: môže zobrazovať obsah skupiny, pridávať príspevky a interagovať bez správcovských práv.">Člen</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <form method="post" class="group-inline-form role-edit-form">
+                            <input type="hidden" name="settings_action" value="role_member">
+                            <input type="hidden" name="target_user_id" value="{{ member.user_id }}">
+                            <select name="role" class="group-role-select">
+                                <option value="admin" {% if member.role == 'admin' %}selected{% endif %}>Administrátor</option>
+                                <option value="member" {% if member.role == 'member' %}selected{% endif %}>Člen</option>
+                            </select>
+                            <button class="btn" type="submit">Uložiť rolu</button>
+                        </form>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>V skupine nie sú dostupní žiadni členovia.</p>
+        {% endif %}
+    </div>
+
+    <div class="role-mode-panel" data-role-panel="all" hidden>
+        <form method="post" class="group-inline-form role-edit-form">
+            <input type="hidden" name="settings_action" value="role_all">
+            <select name="role" class="group-role-select">
+                <option value="member">Člen</option>
+                <option value="admin">Administrátor</option>
+            </select>
+            <button class="btn" type="submit" onclick="return window.confirm('Naozaj chcete priradiť zvolenú rolu všetkým členom?');">Priradiť všetkým</button>
+        </form>
+        <p class="group-tab-note">Pri priradení role Člen zostáva váš účet administrátorom, aby bol vždy aspoň jeden administrátor skupiny.</p>
+    </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if is_edit %}
+<script>
+(function () {
+    const modeButtons = document.querySelectorAll('[data-role-mode]');
+    const modePanels = document.querySelectorAll('[data-role-panel]');
+
+    if (modeButtons.length === 0 || modePanels.length === 0) {
+        return;
+    }
+
+    const activateMode = function (modeName) {
+        modeButtons.forEach(function (button) {
+            button.classList.toggle('active', button.dataset.roleMode === modeName);
+        });
+
+        modePanels.forEach(function (panel) {
+            panel.hidden = panel.dataset.rolePanel !== modeName;
+        });
+    };
+
+    modeButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            activateMode(button.dataset.roleMode);
+        });
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

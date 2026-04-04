@@ -30,6 +30,7 @@ from student_network.repositories.group_events import (
 )
 from student_network.repositories.groups import (
     approve_group_request,
+    bulk_update_member_roles,
     count_group_admins,
     create_group,
     get_group_by_id,
@@ -634,7 +635,60 @@ def register_routes(app: Flask) -> None:
         }
         current_image_path = group['obrazok_url']
 
+        member_rows = get_group_members(group_id)
+        members = [
+            {
+                'user_id': int(row['user_id']),
+                'full_name': f"{row['meno']} {row['priezvisko']}",
+                'role': row['role'],
+                'photo_url': url_for('static', filename=row['profilova_fotka']) if row['profilova_fotka'] else None,
+                'is_current_user': int(row['user_id']) == int(g.user['id']),
+            }
+            for row in member_rows
+        ]
+
         if request.method == 'POST':
+            settings_action = request.form.get('settings_action', 'group').strip().lower()
+
+            if settings_action == 'role_member':
+                try:
+                    target_user_id = int(request.form.get('target_user_id', '0'))
+                except ValueError:
+                    target_user_id = 0
+                role_value = request.form.get('role', '').strip().lower()
+
+                if target_user_id <= 0 or role_value not in {'admin', 'member'}:
+                    flash('Neplatné údaje pre zmenu role.', 'error')
+                    return redirect(url_for('aplikacia_skupina_nastavenia', group_id=group_id))
+
+                target_membership = get_group_membership(group_id=group_id, user_id=target_user_id)
+                if target_membership is None or target_membership['status'] != 'member':
+                    flash('Člen sa nenašiel.', 'error')
+                    return redirect(url_for('aplikacia_skupina_nastavenia', group_id=group_id))
+
+                if target_user_id == int(g.user['id']) and role_value != 'admin' and count_group_admins(group_id) <= 1:
+                    flash('Nemôžete odobrať posledného administrátora.', 'error')
+                    return redirect(url_for('aplikacia_skupina_nastavenia', group_id=group_id))
+
+                update_member_role(group_id=group_id, member_user_id=target_user_id, role=role_value)
+                flash('Rola člena bola aktualizovaná.', 'success')
+                return redirect(url_for('aplikacia_skupina_nastavenia', group_id=group_id))
+
+            if settings_action == 'role_all':
+                role_value = request.form.get('role', '').strip().lower()
+                if role_value not in {'admin', 'member'}:
+                    flash('Neplatná rola.', 'error')
+                    return redirect(url_for('aplikacia_skupina_nastavenia', group_id=group_id))
+
+                if role_value == 'member':
+                    bulk_update_member_roles(group_id=group_id, role='member', exclude_user_id=int(g.user['id']))
+                    update_member_role(group_id=group_id, member_user_id=int(g.user['id']), role='admin')
+                else:
+                    bulk_update_member_roles(group_id=group_id, role='admin')
+
+                flash('Role členov boli hromadne aktualizované.', 'success')
+                return redirect(url_for('aplikacia_skupina_nastavenia', group_id=group_id))
+
             values['nazov'] = request.form.get('nazov', '').strip()
             values['popis'] = request.form.get('popis', '').strip()
             values['pristupnost'] = request.form.get('pristupnost', 'public').strip()
@@ -691,6 +745,7 @@ def register_routes(app: Flask) -> None:
             is_edit=True,
             group_photo_url=group_photo_url,
             group_id=group_id,
+            members=members,
         )
 
     @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/clenovia', methods=['POST'])
@@ -713,25 +768,6 @@ def register_routes(app: Flask) -> None:
 
         if target_user_id <= 0:
             flash('Neplatný člen skupiny.', 'error')
-            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
-
-        if member_action == 'set_role':
-            role_value = request.form.get('role', '').strip().lower()
-            if role_value not in {'admin', 'member'}:
-                flash('Neplatná rola.', 'error')
-                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
-
-            target_membership = get_group_membership(group_id=group_id, user_id=target_user_id)
-            if target_membership is None or target_membership['status'] != 'member':
-                flash('Člen sa nenašiel.', 'error')
-                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
-
-            if target_user_id == int(g.user['id']) and role_value != 'admin' and count_group_admins(group_id) <= 1:
-                flash('Nemôžete odobrať posledného administrátora.', 'error')
-                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
-
-            update_member_role(group_id=group_id, member_user_id=target_user_id, role=role_value)
-            flash('Rola člena bola aktualizovaná.', 'success')
             return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
 
         if member_action == 'remove_member':
