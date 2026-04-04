@@ -140,6 +140,15 @@ def _format_datetime_eu(datetime_value: str) -> str:
     return datetime_value
 
 
+def _parse_event_date_input(date_value: str) -> date | None:
+    for date_pattern in ('%d/%m/%Y', '%Y-%m-%d'):
+        try:
+            return datetime.strptime(date_value, date_pattern).date()
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
 def _parse_group_month(raw_value: str) -> tuple[int, int]:
     today = date.today()
     if not raw_value or not re.fullmatch(r'\d{4}-\d{2}', raw_value):
@@ -535,11 +544,12 @@ def register_routes(app: Flask) -> None:
         event_title = request.form.get('nazov', '').strip()
         event_description = request.form.get('popis', '').strip()
 
-        try:
-            parsed_date = datetime.strptime(event_date_raw, '%Y-%m-%d').date()
-        except ValueError:
+        parsed_date = _parse_event_date_input(event_date_raw)
+        if parsed_date is None:
             flash('Neplatný dátum udalosti.', 'error')
             return _redirect_calendar(redirect_month)
+
+        event_date_raw = parsed_date.isoformat()
 
         try:
             datetime.strptime(event_time_raw, '%H:%M')

@@ -160,7 +160,7 @@
 
                 <div class="field">
                     <label for="group-event-date">Dátum</label>
-                    <input id="group-event-date" name="event_date" type="date" required>
+                    <input id="group-event-date" name="event_date" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" pattern="^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/\d{4}$" required>
                 </div>
 
                 <div class="field">
@@ -214,6 +214,17 @@
     const openEventButtons = document.querySelectorAll('[data-open-event-modal="1"]');
     const closeEventButtons = document.querySelectorAll('[data-close-event-modal="1"]');
     const flashMessages = document.querySelectorAll('[data-group-flash="1"]');
+
+    const toDisplayDate = function (isoDate) {
+        if (!isoDate || isoDate.indexOf('-') === -1) {
+            return isoDate || '';
+        }
+        const parts = isoDate.split('-');
+        if (parts.length !== 3) {
+            return isoDate;
+        }
+        return parts[2] + '/' + parts[1] + '/' + parts[0];
+    };
 
     const setActiveTab = function (tabName, updateUrl) {
         if (!tabName) {
@@ -274,7 +285,7 @@
             eventModalTitle.textContent = 'Upraviť udalosť';
             eventSubmit.textContent = 'Uložiť zmeny';
             eventId.value = data.eventId || '0';
-            eventDate.value = data.date || '';
+            eventDate.value = toDisplayDate(data.date || '');
             eventTime.value = data.time || '';
             eventName.value = data.title || '';
             eventDescription.value = data.description || '';
@@ -282,7 +293,7 @@
             eventModalTitle.textContent = 'Nová udalosť';
             eventSubmit.textContent = 'Uložiť udalosť';
             eventId.value = '0';
-            eventDate.value = data.date || '';
+            eventDate.value = toDisplayDate(data.date || '');
             eventTime.value = '10:00';
             eventName.value = '';
             eventDescription.value = '';
