@@ -55,14 +55,16 @@
 
         <fieldset class="field group-access-fieldset">
             <legend>Prístupnosť skupiny</legend>
-            <label class="group-access-option">
-                <input type="radio" name="pristupnost" value="public" {% if values.pristupnost != 'private' %}checked{% endif %}>
-                Verejná
-            </label>
-            <label class="group-access-option">
-                <input type="radio" name="pristupnost" value="private" {% if values.pristupnost == 'private' %}checked{% endif %}>
-                Súkromná
-            </label>
+            <div class="group-access-buttons">
+                <label class="group-access-button {% if values.pristupnost != 'private' %}active{% endif %}">
+                    <input type="radio" name="pristupnost" value="public" {% if values.pristupnost != 'private' %}checked{% endif %}>
+                    <span>Verejná</span>
+                </label>
+                <label class="group-access-button {% if values.pristupnost == 'private' %}active{% endif %}">
+                    <input type="radio" name="pristupnost" value="private" {% if values.pristupnost == 'private' %}checked{% endif %}>
+                    <span>Súkromná</span>
+                </label>
+            </div>
             <p class="form-error field-error" aria-live="polite">{{ errors.pristupnost if errors else '' }}</p>
         </fieldset>
 
@@ -143,6 +145,20 @@
     </div>
 </section>
 {% endif %}
+
+{% if is_edit %}
+<nav class="group-bottom-nav" aria-label="Sekcie detailu skupiny">
+    <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='zdielat') }}"><span>Zdieľať</span></a>
+    <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='notifikacie') }}"><span>Notifikácie</span></a>
+    <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='kalendar') }}"><span>Kalendár</span></a>
+    <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia') }}"><span>Členovia</span></a>
+    <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory') }}"><span>Súbory</span></a>
+    <a class="group-nav-item group-nav-link-item active" href="{{ url_for('aplikacia_skupina_nastavenia', group_id=group_id) }}">
+        <span class="group-nav-gear" aria-hidden="true">⚙</span>
+        <span>Nastavenia</span>
+    </a>
+</nav>
+{% endif %}
 </div>
 {% endblock %}
 
@@ -156,6 +172,7 @@
     const fileNameLabel = document.getElementById('group-photo-selected-name');
     const previewWrap = document.getElementById('group-photo-preview-wrap');
     const previewImage = document.getElementById('group-photo-preview');
+    const accessButtons = document.querySelectorAll('.group-access-button');
 
     if (fileInput && dropZone && fileNameLabel && previewWrap && previewImage) {
         const isSupportedImage = function (file) {
@@ -216,6 +233,24 @@
                 showPreview(file);
             }
         });
+    }
+
+    if (accessButtons.length > 0) {
+        const refreshAccessButtons = function () {
+            accessButtons.forEach(function (button) {
+                const input = button.querySelector('input[name="pristupnost"]');
+                button.classList.toggle('active', !!input && input.checked);
+            });
+        };
+
+        accessButtons.forEach(function (button) {
+            const input = button.querySelector('input[name="pristupnost"]');
+            if (input) {
+                input.addEventListener('change', refreshAccessButtons);
+            }
+        });
+
+        refreshAccessButtons();
     }
 
     if (isEdit) {

@@ -747,6 +747,7 @@ def register_routes(app: Flask) -> None:
             group_photo_url=group_photo_url,
             group_id=group_id,
             members=members,
+            hide_main_nav=True,
         )
 
     @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/clenovia', methods=['POST'])
