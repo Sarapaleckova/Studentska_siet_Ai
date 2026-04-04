@@ -1,0 +1,27 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ group.nazov }}{% endblock %}
+
+{% block content %}
+<h1>{{ group.nazov }}</h1>
+{% if g.user %}
+<p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
+{% endif %}
+
+<section class="section-card group-detail-card">
+    <div class="group-detail-image-wrap">
+        {% if group.obrazok_url %}
+            <img class="group-detail-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
+        {% else %}
+            <div class="group-detail-image group-card-image-placeholder" aria-hidden="true"></div>
+        {% endif %}
+    </div>
+
+    <p class="group-detail-meta">{{ group.member_count }} členov{% if group.je_sukromna %} • Súkromná skupina{% else %} • Verejná skupina{% endif %}</p>
+    <p class="group-detail-description">{{ group.popis }}</p>
+
+    <div class="actions">
+        <a class="btn-link" href="{{ url_for('aplikacia_skupiny') }}">Späť na skupiny</a>
+    </div>
+</section>
+{% endblock %}

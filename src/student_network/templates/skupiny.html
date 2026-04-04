@@ -1,0 +1,191 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Skupiny{% endblock %}
+
+{% block content %}
+<h1>Skupiny</h1>
+{% if g.user %}
+<p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <p class="flash-message flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<form class="search-wrap" method="get" action="{{ url_for('aplikacia_skupiny') }}">
+    <input class="search-input" type="text" name="q" value="{{ search_query }}" placeholder="Hľadať skupiny podľa názvu..." aria-label="Hľadať skupiny podľa názvu">
+</form>
+
+<section class="section-card groups-section">
+    <h2 class="section-heading">Moje skupiny</h2>
+    {% if member_groups %}
+        <div class="groups-list">
+            {% for group in member_groups %}
+                <a class="group-card member-group-card" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id) }}">
+                    <div class="group-card-image-wrap">
+                        {% if group.obrazok_url %}
+                            <img class="group-card-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
+                        {% else %}
+                            <div class="group-card-image group-card-image-placeholder" aria-hidden="true"></div>
+                        {% endif %}
+                    </div>
+                    <div class="group-card-body">
+                        <h3 class="group-card-title">{{ group.nazov }}</h3>
+                        <p class="group-card-meta">{{ group.member_count }} členov{% if group.je_sukromna %} • Súkromná{% else %} • Verejná{% endif %}</p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-note">Nie ste členom žiadnej skupiny.</p>
+    {% endif %}
+</section>
+
+<section class="section-card groups-section">
+    <h2 class="section-heading">Ostatné skupiny</h2>
+    {% if non_member_groups %}
+        <div class="groups-list">
+            {% for group in non_member_groups %}
+                <button
+                    class="group-card open-group-modal"
+                    type="button"
+                    data-id="{{ group.id }}"
+                    data-name="{{ group.nazov }}"
+                    data-description="{{ group.popis }}"
+                    data-image="{{ group.obrazok_url }}"
+                    data-private="{{ 1 if group.je_sukromna else 0 }}"
+                    data-members="{{ group.member_count }}"
+                    data-membership-status="{{ group.membership_status }}">
+                    <div class="group-card-image-wrap">
+                        {% if group.obrazok_url %}
+                            <img class="group-card-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
+                        {% else %}
+                            <div class="group-card-image group-card-image-placeholder" aria-hidden="true"></div>
+                        {% endif %}
+                    </div>
+                    <div class="group-card-body">
+                        <h3 class="group-card-title">{{ group.nazov }}</h3>
+                        <p class="group-card-meta">{{ group.member_count }} členov{% if group.je_sukromna %} • Súkromná{% else %} • Verejná{% endif %}</p>
+                        {% if group.membership_status == 'pending' %}
+                            <p class="group-card-status">Žiadosť odoslaná</p>
+                        {% endif %}
+                    </div>
+                </button>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="empty-note">Nenašli sa žiadne ďalšie skupiny.</p>
+    {% endif %}
+</section>
+
+<div class="group-modal" id="group-modal" aria-hidden="true">
+    <div class="group-modal-backdrop" data-close-modal="1"></div>
+    <div class="group-modal-panel" role="dialog" aria-modal="true" aria-labelledby="group-modal-title">
+        <button class="group-modal-close" id="group-modal-close" type="button" aria-label="Zavrieť">×</button>
+
+        <div class="group-modal-image-wrap">
+            <img id="group-modal-image" class="group-modal-image" src="" alt="Obrázok skupiny">
+            <div id="group-modal-image-placeholder" class="group-modal-image group-card-image-placeholder" aria-hidden="true"></div>
+        </div>
+
+        <h2 id="group-modal-title"></h2>
+        <p id="group-modal-description" class="group-modal-description"></p>
+        <p id="group-modal-members" class="group-modal-members"></p>
+
+        <form method="post" action="{{ url_for('aplikacia_skupiny_akcia') }}">
+            <input type="hidden" name="group_id" id="group-modal-group-id" value="">
+            <input type="hidden" name="action" id="group-modal-action" value="">
+            <input type="hidden" name="q" value="{{ search_query }}">
+            <button id="group-modal-submit" class="btn" type="submit"></button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const modal = document.getElementById('group-modal');
+    const openButtons = document.querySelectorAll('.open-group-modal');
+    const closeButton = document.getElementById('group-modal-close');
+    const backdrop = modal ? modal.querySelector('[data-close-modal="1"]') : null;
+
+    if (!modal || !closeButton || !backdrop || openButtons.length === 0) {
+        return;
+    }
+
+    const title = document.getElementById('group-modal-title');
+    const description = document.getElementById('group-modal-description');
+    const members = document.getElementById('group-modal-members');
+    const image = document.getElementById('group-modal-image');
+    const imagePlaceholder = document.getElementById('group-modal-image-placeholder');
+    const submitButton = document.getElementById('group-modal-submit');
+    const groupIdInput = document.getElementById('group-modal-group-id');
+    const actionInput = document.getElementById('group-modal-action');
+
+    const closeModal = function () {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    };
+
+    const openModal = function (button) {
+        const isPrivate = button.dataset.private === '1';
+        const membershipStatus = button.dataset.membershipStatus || '';
+
+        title.textContent = button.dataset.name || 'Skupina';
+        description.textContent = button.dataset.description || '';
+        members.textContent = (button.dataset.members || '0') + ' členov';
+        groupIdInput.value = button.dataset.id || '';
+
+        const imageUrl = button.dataset.image || '';
+        if (imageUrl) {
+            image.src = imageUrl;
+            image.style.display = 'block';
+            imagePlaceholder.style.display = 'none';
+        } else {
+            image.removeAttribute('src');
+            image.style.display = 'none';
+            imagePlaceholder.style.display = 'block';
+        }
+
+        if (membershipStatus === 'pending') {
+            actionInput.value = 'request';
+            submitButton.textContent = 'Žiadosť odoslaná';
+            submitButton.disabled = true;
+        } else if (isPrivate) {
+            actionInput.value = 'request';
+            submitButton.textContent = 'Požiadať o prijatie';
+            submitButton.disabled = false;
+        } else {
+            actionInput.value = 'join';
+            submitButton.textContent = 'Pridať sa do skupiny';
+            submitButton.disabled = false;
+        }
+
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    };
+
+    openButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+            openModal(button);
+        });
+    });
+
+    closeButton.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+            closeModal();
+        }
+    });
+})();
+</script>
+{% endblock %}

@@ -58,6 +58,27 @@ CREATE TABLE IF NOT EXISTS post_comments (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (parent_comment_id) REFERENCES post_comments(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS groups_table (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    nazov TEXT NOT NULL UNIQUE,
+    popis TEXT NOT NULL DEFAULT '',
+    obrazok_url TEXT NOT NULL DEFAULT '',
+    je_sukromna INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS group_memberships (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('member', 'pending')),
+    requested_at TEXT NOT NULL,
+    joined_at TEXT NOT NULL DEFAULT '',
+    UNIQUE(group_id, user_id),
+    FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 
@@ -90,6 +111,8 @@ def init_db() -> None:
     database = get_db()
     database.executescript(SCHEMA)
     ensure_profile_photo_column(database)
+    ensure_group_membership_joined_at_column(database)
+    ensure_seed_groups(database)
     database.commit()
 
 
@@ -101,6 +124,61 @@ def ensure_profile_photo_column(database: sqlite3.Connection) -> None:
         database.execute(
             "ALTER TABLE user_profiles ADD COLUMN profilova_fotka TEXT NOT NULL DEFAULT ''"
         )
+
+
+def ensure_group_membership_joined_at_column(database: sqlite3.Connection) -> None:
+    columns = database.execute("PRAGMA table_info(group_memberships)").fetchall()
+    existing_column_names = {column['name'] for column in columns}
+
+    if 'joined_at' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE group_memberships ADD COLUMN joined_at TEXT NOT NULL DEFAULT ''"
+        )
+
+
+def ensure_seed_groups(database: sqlite3.Connection) -> None:
+    row = database.execute("SELECT COUNT(*) AS cnt FROM groups_table").fetchone()
+    if row is not None and int(row['cnt']) > 0:
+        return
+
+    database.executemany(
+        """
+        INSERT INTO groups_table (nazov, popis, obrazok_url, je_sukromna, created_at)
+        VALUES (?, ?, ?, ?, datetime('now'))
+        """,
+        [
+            (
+                'Programatori TUKE',
+                'Skupina pre studentov programovania na TUKE. Delime sa o zdrojaky, tipy a pomoc s projektmi.',
+                'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80',
+                0,
+            ),
+            (
+                'Matematika bez stresu',
+                'Spolocne pocitanie uloh z matematiky, pripravy na testy a zdielanie studijnych materialov.',
+                'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&w=1200&q=80',
+                0,
+            ),
+            (
+                'AI Lab Students',
+                'Diskusie o AI, machine learning projektoch, modeloch a experimentovani.',
+                'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80',
+                1,
+            ),
+            (
+                'Sport na internate',
+                'Organizujeme futbal, volejbal a beh. Kazdy novy clen je vitany.',
+                'https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=1200&q=80',
+                0,
+            ),
+            (
+                'Kyberbezpecnost TUKE',
+                'Skupina pre nadsencov kyberbezpecnosti, CTF ulohy a prednasky.',
+                'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80',
+                1,
+            ),
+        ],
+    )
 
 
 def current_database_path() -> str:

@@ -16,6 +16,13 @@ from student_network.file_types import (
     post_file_types_description,
 )
 from student_network.repositories.comments import create_post_comment, get_post_comment_by_id, get_post_comments
+from student_network.repositories.groups import (
+    get_group_by_id,
+    get_group_membership,
+    get_groups_for_user,
+    join_public_group,
+    request_private_group_membership,
+)
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
 from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id
 from student_network.repositories.ratings import get_user_post_rating, upsert_post_rating
@@ -183,13 +190,117 @@ def register_routes(app: Flask) -> None:
     @app.route(f'{APP_BASE_PATH}/skupiny')
     @login_required
     def aplikacia_skupiny() -> str:
+        search_query = request.args.get('q', '').strip()
+        group_rows = get_groups_for_user(int(g.user['id']), search_query)
+
+        member_groups = [
+            {
+                'id': row['id'],
+                'nazov': row['nazov'],
+                'popis': row['popis'],
+                'obrazok_url': row['obrazok_url'],
+                'je_sukromna': bool(row['je_sukromna']),
+                'member_count': int(row['member_count'] or 0),
+            }
+            for row in group_rows
+            if row['membership_status'] == 'member'
+        ]
+
+        non_member_groups = [
+            {
+                'id': row['id'],
+                'nazov': row['nazov'],
+                'popis': row['popis'],
+                'obrazok_url': row['obrazok_url'],
+                'je_sukromna': bool(row['je_sukromna']),
+                'member_count': int(row['member_count'] or 0),
+                'membership_status': row['membership_status'] or '',
+            }
+            for row in group_rows
+            if row['membership_status'] != 'member'
+        ]
+
         return render_template(
-            'app_main.html',
+            'skupiny.html',
             active_tab='skupiny',
-            section_title='Skupiny',
-            section_content='Stránka pre skupiny',
-            show_search=True,
-            search_placeholder='Hľadať skupiny...'
+            search_query=search_query,
+            member_groups=member_groups,
+            non_member_groups=non_member_groups,
+        )
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/akcia', methods=['POST'])
+    @login_required
+    def aplikacia_skupiny_akcia() -> str:
+        search_query = request.form.get('q', '').strip()
+        redirect_target = url_for('aplikacia_skupiny', q=search_query) if search_query else url_for('aplikacia_skupiny')
+
+        try:
+            group_id = int(request.form.get('group_id', '0'))
+        except ValueError:
+            flash('Neplatná skupina.', 'error')
+            return redirect(redirect_target)
+
+        action = request.form.get('action', '')
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(redirect_target)
+
+        if action == 'join':
+            if bool(group['je_sukromna']):
+                flash('Do súkromnej skupiny sa nedá pridať priamo.', 'error')
+                return redirect(redirect_target)
+
+            result = join_public_group(group_id=group_id, user_id=int(g.user['id']))
+            if result == 'already-member':
+                flash('Už ste členom tejto skupiny.', 'success')
+            else:
+                flash('Boli ste pridaný do skupiny.', 'success')
+            return redirect(redirect_target)
+
+        if action == 'request':
+            if not bool(group['je_sukromna']):
+                flash('Verejná skupina nevyžaduje žiadosť.', 'error')
+                return redirect(redirect_target)
+
+            result = request_private_group_membership(group_id=group_id, user_id=int(g.user['id']))
+            if result == 'already-member':
+                flash('Už ste členom tejto skupiny.', 'success')
+            elif result == 'already-requested':
+                flash('Žiadosť už bola odoslaná.', 'success')
+            else:
+                flash('Žiadosť o prijatie bola odoslaná.', 'success')
+            return redirect(redirect_target)
+
+        flash('Neplatná akcia skupiny.', 'error')
+        return redirect(redirect_target)
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>')
+    @login_required
+    def aplikacia_skupina_detail(group_id: int) -> str:
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            flash('Detail je dostupný len pre členov skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        group_view = {
+            'id': group['id'],
+            'nazov': group['nazov'],
+            'popis': group['popis'],
+            'obrazok_url': group['obrazok_url'],
+            'je_sukromna': bool(group['je_sukromna']),
+            'member_count': int(group['member_count'] or 0),
+        }
+
+        return render_template(
+            'skupina_detail.html',
+            active_tab='skupiny',
+            group=group_view,
         )
 
     @app.route(f'{APP_BASE_PATH}/hladat')
