@@ -79,6 +79,33 @@ CREATE TABLE IF NOT EXISTS group_memberships (
     FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS group_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    created_by_user_id INTEGER NOT NULL,
+    event_date TEXT NOT NULL,
+    event_time TEXT NOT NULL,
+    nazov TEXT NOT NULL,
+    popis TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS group_event_notifications (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    event_id INTEGER,
+    actor_user_id INTEGER NOT NULL,
+    action_type TEXT NOT NULL CHECK (action_type IN ('create', 'update', 'delete')),
+    message TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
+    FOREIGN KEY (event_id) REFERENCES group_events(id) ON DELETE SET NULL,
+    FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 

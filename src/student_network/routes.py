@@ -1,5 +1,7 @@
 """Route definitions for Študentská sieť."""
 
+from calendar import monthrange
+from datetime import date, datetime
 from functools import wraps
 from pathlib import Path
 import re
@@ -16,6 +18,15 @@ from student_network.file_types import (
     post_file_types_description,
 )
 from student_network.repositories.comments import create_post_comment, get_post_comment_by_id, get_post_comments
+from student_network.repositories.group_events import (
+    create_group_event,
+    create_group_event_notification,
+    delete_group_event,
+    get_group_event_by_id,
+    get_group_events_for_month,
+    get_group_notifications,
+    update_group_event,
+)
 from student_network.repositories.groups import (
     get_group_by_id,
     get_group_membership,
@@ -32,6 +43,7 @@ from student_network.services.profile_service import profile_form_values, profil
 
 ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 APP_BASE_PATH = '/studentska-siet'
+GROUP_TABS = {'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'}
 
 
 def _post_file_type_from_name(file_name: str) -> str:
@@ -98,6 +110,82 @@ def _build_comment_tree(comment_rows) -> list[dict]:
             root_comments.append(comment)
 
     return root_comments
+
+
+def _parse_group_month(raw_value: str) -> tuple[int, int]:
+    today = date.today()
+    if not raw_value or not re.fullmatch(r'\d{4}-\d{2}', raw_value):
+        return today.year, today.month
+
+    year_value = int(raw_value[:4])
+    month_value = int(raw_value[5:7])
+    if year_value < 1970 or year_value > 2100 or month_value < 1 or month_value > 12:
+        return today.year, today.month
+
+    return year_value, month_value
+
+
+def _month_key(year_value: int, month_value: int) -> str:
+    return f"{year_value:04d}-{month_value:02d}"
+
+
+def _shift_month(year_value: int, month_value: int, delta: int) -> tuple[int, int]:
+    absolute_month = year_value * 12 + (month_value - 1) + delta
+    return absolute_month // 12, (absolute_month % 12) + 1
+
+
+def _build_group_calendar_grid(
+    year_value: int,
+    month_value: int,
+    event_dates: set[str],
+) -> list[list[dict]]:
+    first_weekday, days_in_month = monthrange(year_value, month_value)
+    prev_year, prev_month = _shift_month(year_value, month_value, -1)
+    next_year, next_month = _shift_month(year_value, month_value, 1)
+    prev_days = monthrange(prev_year, prev_month)[1]
+    today_iso = date.today().isoformat()
+
+    cells: list[dict] = []
+
+    for day_value in range(prev_days - first_weekday + 1, prev_days + 1):
+        date_iso = f"{prev_year:04d}-{prev_month:02d}-{day_value:02d}"
+        cells.append(
+            {
+                'day': day_value,
+                'date_iso': date_iso,
+                'in_current_month': False,
+                'is_today': date_iso == today_iso,
+                'has_events': date_iso in event_dates,
+            }
+        )
+
+    for day_value in range(1, days_in_month + 1):
+        date_iso = f"{year_value:04d}-{month_value:02d}-{day_value:02d}"
+        cells.append(
+            {
+                'day': day_value,
+                'date_iso': date_iso,
+                'in_current_month': True,
+                'is_today': date_iso == today_iso,
+                'has_events': date_iso in event_dates,
+            }
+        )
+
+    trailing_day = 1
+    while len(cells) % 7 != 0:
+        date_iso = f"{next_year:04d}-{next_month:02d}-{trailing_day:02d}"
+        cells.append(
+            {
+                'day': trailing_day,
+                'date_iso': date_iso,
+                'in_current_month': False,
+                'is_today': date_iso == today_iso,
+                'has_events': date_iso in event_dates,
+            }
+        )
+        trailing_day += 1
+
+    return [cells[index:index + 7] for index in range(0, len(cells), 7)]
 
 
 def register_routes(app: Flask) -> None:
@@ -297,12 +385,197 @@ def register_routes(app: Flask) -> None:
             'member_count': int(group['member_count'] or 0),
         }
 
+        month_value = request.args.get('month', '').strip()
+        year_value, month_number = _parse_group_month(month_value)
+        current_month_key = _month_key(year_value, month_number)
+        prev_month_key = _month_key(*_shift_month(year_value, month_number, -1))
+        next_month_key = _month_key(*_shift_month(year_value, month_number, 1))
+
+        active_detail_tab = request.args.get('tab', 'zdielat').strip().lower()
+        if active_detail_tab not in GROUP_TABS:
+            active_detail_tab = 'zdielat'
+
+        month_event_rows = get_group_events_for_month(group_id=group_id, year=year_value, month=month_number)
+        month_events = [
+            {
+                'id': row['id'],
+                'event_date': row['event_date'],
+                'event_time': row['event_time'],
+                'nazov': row['nazov'],
+                'popis': row['popis'],
+                'author': f"{row['actor_meno']} {row['actor_priezvisko']}",
+            }
+            for row in month_event_rows
+        ]
+        event_dates = {event['event_date'] for event in month_events}
+
+        calendar_weeks = _build_group_calendar_grid(
+            year_value=year_value,
+            month_value=month_number,
+            event_dates=event_dates,
+        )
+
+        notification_rows = get_group_notifications(group_id)
+        notifications = [
+            {
+                'id': row['id'],
+                'action_type': row['action_type'],
+                'message': row['message'],
+                'created_at': row['created_at'].replace('T', ' '),
+                'actor': f"{row['actor_meno']} {row['actor_priezvisko']}",
+                'event_date': row['event_date'],
+                'event_time': row['event_time'],
+                'event_nazov': row['event_nazov'],
+            }
+            for row in notification_rows
+        ]
+
+        month_title = datetime(year_value, month_number, 1).strftime('%B %Y')
+
         return render_template(
             'skupina_detail.html',
             active_tab='skupiny',
             group=group_view,
             hide_main_nav=True,
+            active_detail_tab=active_detail_tab,
+            current_month_key=current_month_key,
+            prev_month_key=prev_month_key,
+            next_month_key=next_month_key,
+            month_title=month_title,
+            calendar_weeks=calendar_weeks,
+            month_events=month_events,
+            notifications=notifications,
+            week_days=['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'],
         )
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/udalosti', methods=['POST'])
+    @login_required
+    def aplikacia_skupina_udalosti(group_id: int) -> str:
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            flash('Kalendár je dostupný len pre členov skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        month_raw = request.form.get('month', '').strip()
+        month_year, month_number = _parse_group_month(month_raw)
+        redirect_month = _month_key(month_year, month_number)
+
+        def _redirect_calendar(month_key: str) -> str:
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='kalendar', month=month_key))
+
+        event_action = request.form.get('event_action', '').strip().lower()
+        try:
+            event_id = int(request.form.get('event_id', '0'))
+        except ValueError:
+            event_id = 0
+
+        if event_action == 'delete':
+            if event_id <= 0:
+                flash('Neplatná udalosť.', 'error')
+                return _redirect_calendar(redirect_month)
+
+            existing_event = get_group_event_by_id(group_id=group_id, event_id=event_id)
+            if existing_event is None:
+                flash('Udalosť sa nenašla.', 'error')
+                return _redirect_calendar(redirect_month)
+
+            event_label = f"{existing_event['event_date']} {existing_event['event_time']} - {existing_event['nazov']}"
+            delete_group_event(group_id=group_id, event_id=event_id)
+            create_group_event_notification(
+                group_id=group_id,
+                event_id=None,
+                actor_user_id=int(g.user['id']),
+                action_type='delete',
+                message=f"Udalosť bola odstránená: {event_label}",
+            )
+            flash('Udalosť bola odstránená.', 'success')
+            return _redirect_calendar(redirect_month)
+
+        event_date_raw = request.form.get('event_date', '').strip()
+        event_time_raw = request.form.get('event_time', '').strip()
+        event_title = request.form.get('nazov', '').strip()
+        event_description = request.form.get('popis', '').strip()
+
+        try:
+            parsed_date = datetime.strptime(event_date_raw, '%Y-%m-%d').date()
+        except ValueError:
+            flash('Neplatný dátum udalosti.', 'error')
+            return _redirect_calendar(redirect_month)
+
+        try:
+            datetime.strptime(event_time_raw, '%H:%M')
+        except ValueError:
+            flash('Neplatný čas udalosti.', 'error')
+            return _redirect_calendar(redirect_month)
+
+        if not event_title:
+            flash('Názov udalosti je povinný.', 'error')
+            return _redirect_calendar(redirect_month)
+
+        if len(event_title) > 160:
+            flash('Názov udalosti môže mať najviac 160 znakov.', 'error')
+            return _redirect_calendar(redirect_month)
+
+        if len(event_description) > 2000:
+            flash('Popis udalosti môže mať najviac 2000 znakov.', 'error')
+            return _redirect_calendar(redirect_month)
+
+        redirect_month = _month_key(parsed_date.year, parsed_date.month)
+
+        if event_action == 'create':
+            new_event_id = create_group_event(
+                group_id=group_id,
+                created_by_user_id=int(g.user['id']),
+                event_date=event_date_raw,
+                event_time=event_time_raw,
+                nazov=event_title,
+                popis=event_description,
+            )
+            create_group_event_notification(
+                group_id=group_id,
+                event_id=new_event_id,
+                actor_user_id=int(g.user['id']),
+                action_type='create',
+                message=f"Nová udalosť: {event_date_raw} {event_time_raw} - {event_title}",
+            )
+            flash('Udalosť bola vytvorená.', 'success')
+            return _redirect_calendar(redirect_month)
+
+        if event_action == 'update':
+            if event_id <= 0:
+                flash('Neplatná udalosť.', 'error')
+                return _redirect_calendar(redirect_month)
+
+            existing_event = get_group_event_by_id(group_id=group_id, event_id=event_id)
+            if existing_event is None:
+                flash('Udalosť sa nenašla.', 'error')
+                return _redirect_calendar(redirect_month)
+
+            update_group_event(
+                group_id=group_id,
+                event_id=event_id,
+                event_date=event_date_raw,
+                event_time=event_time_raw,
+                nazov=event_title,
+                popis=event_description,
+            )
+            create_group_event_notification(
+                group_id=group_id,
+                event_id=event_id,
+                actor_user_id=int(g.user['id']),
+                action_type='update',
+                message=f"Upravená udalosť: {event_date_raw} {event_time_raw} - {event_title}",
+            )
+            flash('Udalosť bola upravená.', 'success')
+            return _redirect_calendar(redirect_month)
+
+        flash('Neplatná akcia udalosti.', 'error')
+        return _redirect_calendar(redirect_month)
 
     @app.route(f'{APP_BASE_PATH}/hladat')
     @login_required

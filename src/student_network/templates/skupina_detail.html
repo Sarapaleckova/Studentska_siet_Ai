@@ -5,6 +5,7 @@
 {% block content %}
 <section class="group-detail-page">
     <header class="group-detail-header">
+        <a class="group-back-link" href="{{ url_for('aplikacia_skupiny') }}" aria-label="Späť na skupiny">←</a>
         <div class="group-detail-image-wrap">
             {% if group.obrazok_url %}
                 <img class="group-detail-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
@@ -18,50 +19,178 @@
         </div>
     </header>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p class="flash-message flash-{{ category }}">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <main class="group-detail-main" id="group-detail-main-content">
-        <section class="section-card group-tab-panel active" data-tab-panel="zdielat">
+        <section class="section-card group-tab-panel {% if active_detail_tab == 'zdielat' %}active{% endif %}" data-tab-panel="zdielat" {% if active_detail_tab != 'zdielat' %}hidden{% endif %}>
             <h2>Zdieľať</h2>
             <p class="group-detail-description">{{ group.popis }}</p>
             <p class="group-tab-note">V tejto sekcii môžeš zdieľať príspevky, oznamy a študijné materiály pre členov skupiny.</p>
         </section>
 
-        <section class="section-card group-tab-panel" data-tab-panel="notifikacie" hidden>
+        <section class="section-card group-tab-panel {% if active_detail_tab == 'notifikacie' %}active{% endif %}" data-tab-panel="notifikacie" {% if active_detail_tab != 'notifikacie' %}hidden{% endif %}>
             <h2>Notifikácie</h2>
-            <ul class="group-list">
-                <li>Nové príspevky v skupine: zapnuté</li>
-                <li>Komentáre na tvoje príspevky: zapnuté</li>
-                <li>Pozvánky na udalosti: zapnuté</li>
-            </ul>
+            {% if notifications %}
+                <div class="group-notification-list">
+                    {% for item in notifications %}
+                        <article class="group-notification-item">
+                            <p class="group-notification-message">{{ item.message }}</p>
+                            {% if item.event_nazov and item.event_date and item.event_time %}
+                                <p class="group-notification-event">Udalosť: {{ item.event_date }} {{ item.event_time }} - {{ item.event_nazov }}</p>
+                            {% endif %}
+                            <p class="group-notification-meta">{{ item.actor }} • {{ item.created_at }}</p>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Zatiaľ nie sú dostupné žiadne oznámenia.</p>
+            {% endif %}
         </section>
 
-        <section class="section-card group-tab-panel" data-tab-panel="kalendar" hidden>
+        <section class="section-card group-tab-panel {% if active_detail_tab == 'kalendar' %}active{% endif %}" data-tab-panel="kalendar" {% if active_detail_tab != 'kalendar' %}hidden{% endif %}>
             <h2>Kalendár</h2>
-            <ul class="group-list">
-                <li>Pondelok 18:00 - Stretnutie členov</li>
-                <li>Streda 16:30 - Konzultácie k projektom</li>
-                <li>Piatok 15:00 - Plánovanie ďalšieho týždňa</li>
-            </ul>
+            <div class="calendar-toolbar">
+                <a class="btn-link calendar-nav-link" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='kalendar', month=prev_month_key) }}">Predchádzajúci</a>
+                <p class="calendar-month-title">{{ month_title }}</p>
+                <a class="btn-link calendar-nav-link" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='kalendar', month=next_month_key) }}">Nasledujúci</a>
+            </div>
+
+            <div class="calendar-grid-head">
+                {% for day_name in week_days %}
+                    <div class="calendar-week-name">{{ day_name }}</div>
+                {% endfor %}
+            </div>
+            <div class="calendar-grid" role="grid" aria-label="Mesačný kalendár udalostí">
+                {% for week in calendar_weeks %}
+                    {% for day in week %}
+                        <button
+                            type="button"
+                            class="calendar-day{% if not day.in_current_month %} outside-month{% endif %}{% if day.is_today %} is-today{% endif %}{% if day.has_events %} has-events{% endif %}"
+                            data-open-event-modal="1"
+                            data-mode="create"
+                            data-date="{{ day.date_iso }}">
+                            <span class="calendar-day-number">{{ day.day }}</span>
+                            {% if day.has_events %}
+                                <span class="calendar-event-dot" aria-hidden="true"></span>
+                            {% endif %}
+                        </button>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+
+            <div class="calendar-actions">
+                <button
+                    class="btn"
+                    type="button"
+                    data-open-event-modal="1"
+                    data-mode="create"
+                    data-date="{{ current_month_key }}-01">
+                    Vytvoriť udalosť
+                </button>
+            </div>
+
+            <h3 class="calendar-events-heading">Udalosti v mesiaci</h3>
+            {% if month_events %}
+                <div class="calendar-events-list">
+                    {% for event in month_events %}
+                        <article class="calendar-event-item">
+                            <p class="calendar-event-time">{{ event.event_date }} {{ event.event_time }}</p>
+                            <h4 class="calendar-event-title">{{ event.nazov }}</h4>
+                            {% if event.popis %}
+                                <p class="calendar-event-description">{{ event.popis }}</p>
+                            {% endif %}
+                            <p class="calendar-event-meta">Vytvoril: {{ event.author }}</p>
+                            <div class="calendar-event-controls">
+                                <button
+                                    class="btn"
+                                    type="button"
+                                    data-open-event-modal="1"
+                                    data-mode="update"
+                                    data-event-id="{{ event.id }}"
+                                    data-date="{{ event.event_date }}"
+                                    data-time="{{ event.event_time }}"
+                                    data-title="{{ event.nazov }}"
+                                    data-description="{{ event.popis }}">
+                                    Upraviť
+                                </button>
+                                <form method="post" action="{{ url_for('aplikacia_skupina_udalosti', group_id=group.id) }}" onsubmit="return window.confirm('Naozaj odstrániť udalosť?');">
+                                    <input type="hidden" name="event_action" value="delete">
+                                    <input type="hidden" name="event_id" value="{{ event.id }}">
+                                    <input type="hidden" name="month" value="{{ current_month_key }}">
+                                    <button class="btn" type="submit">Odstrániť</button>
+                                </form>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>V tomto mesiaci zatiaľ nie sú žiadne udalosti.</p>
+            {% endif %}
         </section>
 
-        <section class="section-card group-tab-panel" data-tab-panel="clenovia" hidden>
+        <section class="section-card group-tab-panel {% if active_detail_tab == 'clenovia' %}active{% endif %}" data-tab-panel="clenovia" {% if active_detail_tab != 'clenovia' %}hidden{% endif %}>
             <h2>Členovia</h2>
             <p>Skupina má aktuálne {{ group.member_count }} členov.</p>
             <p class="group-tab-note">Detailný zoznam členov je možné doplniť napojením na samostatnú tabuľku rolí a profilov skupiny.</p>
         </section>
 
-        <section class="section-card group-tab-panel" data-tab-panel="subory" hidden>
+        <section class="section-card group-tab-panel {% if active_detail_tab == 'subory' %}active{% endif %}" data-tab-panel="subory" {% if active_detail_tab != 'subory' %}hidden{% endif %}>
             <h2>Súbory</h2>
             <p>Pre túto skupinu zatiaľ nie sú nahraté žiadne skupinové súbory.</p>
             <p class="group-tab-note">Sekcia je pripravená na napojenie uploadov skupinových materiálov.</p>
         </section>
     </main>
 
+    <div class="event-modal" id="group-event-modal" aria-hidden="true">
+        <div class="event-modal-backdrop" data-close-event-modal="1"></div>
+        <div class="event-modal-panel" role="dialog" aria-modal="true" aria-labelledby="group-event-modal-title">
+            <button class="event-modal-close" type="button" data-close-event-modal="1" aria-label="Zavrieť">×</button>
+            <h3 id="group-event-modal-title">Nová udalosť</h3>
+
+            <form method="post" action="{{ url_for('aplikacia_skupina_udalosti', group_id=group.id) }}" class="event-form">
+                <input type="hidden" name="event_action" id="group-event-action" value="create">
+                <input type="hidden" name="event_id" id="group-event-id" value="0">
+                <input type="hidden" name="month" value="{{ current_month_key }}">
+
+                <div class="field">
+                    <label for="group-event-date">Dátum</label>
+                    <input id="group-event-date" name="event_date" type="date" required>
+                </div>
+
+                <div class="field">
+                    <label for="group-event-time">Čas</label>
+                    <input id="group-event-time" name="event_time" type="time" required>
+                </div>
+
+                <div class="field">
+                    <label for="group-event-name">Názov udalosti</label>
+                    <input id="group-event-name" name="nazov" type="text" maxlength="160" required>
+                </div>
+
+                <div class="field">
+                    <label for="group-event-description">Popis (voliteľný)</label>
+                    <textarea id="group-event-description" name="popis" rows="4" maxlength="2000"></textarea>
+                </div>
+
+                <div class="actions">
+                    <button class="btn" type="submit" id="group-event-submit">Uložiť udalosť</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <nav class="group-bottom-nav" aria-label="Sekcie detailu skupiny">
-        <button class="group-nav-item active" type="button" data-tab-target="zdielat">Zdieľať</button>
-        <button class="group-nav-item" type="button" data-tab-target="notifikacie">Notifikácie</button>
-        <button class="group-nav-item" type="button" data-tab-target="kalendar">Kalendár</button>
-        <button class="group-nav-item" type="button" data-tab-target="clenovia">Členovia</button>
-        <button class="group-nav-item" type="button" data-tab-target="subory">Súbory</button>
+        <button class="group-nav-item {% if active_detail_tab == 'zdielat' %}active{% endif %}" type="button" data-tab-target="zdielat">Zdieľať</button>
+        <button class="group-nav-item {% if active_detail_tab == 'notifikacie' %}active{% endif %}" type="button" data-tab-target="notifikacie">Notifikácie</button>
+        <button class="group-nav-item {% if active_detail_tab == 'kalendar' %}active{% endif %}" type="button" data-tab-target="kalendar">Kalendár</button>
+        <button class="group-nav-item {% if active_detail_tab == 'clenovia' %}active{% endif %}" type="button" data-tab-target="clenovia">Členovia</button>
+        <button class="group-nav-item {% if active_detail_tab == 'subory' %}active{% endif %}" type="button" data-tab-target="subory">Súbory</button>
     </nav>
 </section>
 {% endblock %}
@@ -69,14 +198,32 @@
 {% block scripts %}
 <script>
 (function () {
+    const groupId = {{ group.id }};
+    const currentMonth = '{{ current_month_key }}';
     const navItems = document.querySelectorAll('.group-nav-item');
     const panels = document.querySelectorAll('.group-tab-panel');
+    const eventModal = document.getElementById('group-event-modal');
+    const eventModalTitle = document.getElementById('group-event-modal-title');
+    const eventAction = document.getElementById('group-event-action');
+    const eventId = document.getElementById('group-event-id');
+    const eventDate = document.getElementById('group-event-date');
+    const eventTime = document.getElementById('group-event-time');
+    const eventName = document.getElementById('group-event-name');
+    const eventDescription = document.getElementById('group-event-description');
+    const eventSubmit = document.getElementById('group-event-submit');
+    const openEventButtons = document.querySelectorAll('[data-open-event-modal="1"]');
+    const closeEventButtons = document.querySelectorAll('[data-close-event-modal="1"]');
 
-    if (navItems.length === 0 || panels.length === 0) {
-        return;
-    }
+    const setActiveTab = function (tabName, updateUrl) {
+        if (!tabName) {
+            return;
+        }
 
-    const activateTab = function (tabName) {
+        const allowedTabs = ['zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'];
+        if (allowedTabs.indexOf(tabName) === -1) {
+            return;
+        }
+
         navItems.forEach(function (button) {
             button.classList.toggle('active', button.dataset.tabTarget === tabName);
         });
@@ -86,13 +233,91 @@
             panel.classList.toggle('active', shouldShow);
             panel.hidden = !shouldShow;
         });
+
+        if (updateUrl) {
+            const params = new URLSearchParams(window.location.search);
+            params.set('tab', tabName);
+            params.set('month', currentMonth);
+            const newUrl = window.location.pathname + '?' + params.toString();
+            window.history.replaceState({}, '', newUrl);
+        }
     };
 
-    navItems.forEach(function (button) {
+    if (navItems.length > 0 && panels.length > 0) {
+        navItems.forEach(function (button) {
+            button.addEventListener('click', function () {
+                setActiveTab(button.dataset.tabTarget, true);
+            });
+        });
+    }
+
+    if (!eventModal) {
+        return;
+    }
+
+    const closeEventModal = function () {
+        eventModal.classList.remove('is-open');
+        eventModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    };
+
+    const openEventModal = function (data) {
+        const mode = data.mode === 'update' ? 'update' : 'create';
+        eventAction.value = mode;
+
+        if (mode === 'update') {
+            eventModalTitle.textContent = 'Upraviť udalosť';
+            eventSubmit.textContent = 'Uložiť zmeny';
+            eventId.value = data.eventId || '0';
+            eventDate.value = data.date || '';
+            eventTime.value = data.time || '';
+            eventName.value = data.title || '';
+            eventDescription.value = data.description || '';
+        } else {
+            eventModalTitle.textContent = 'Nová udalosť';
+            eventSubmit.textContent = 'Uložiť udalosť';
+            eventId.value = '0';
+            eventDate.value = data.date || '';
+            eventTime.value = '10:00';
+            eventName.value = '';
+            eventDescription.value = '';
+        }
+
+        eventModal.classList.add('is-open');
+        eventModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    };
+
+    openEventButtons.forEach(function (button) {
         button.addEventListener('click', function () {
-            activateTab(button.dataset.tabTarget);
+            openEventModal({
+                mode: button.dataset.mode,
+                eventId: button.dataset.eventId,
+                date: button.dataset.date,
+                time: button.dataset.time,
+                title: button.dataset.title,
+                description: button.dataset.description
+            });
+            setActiveTab('kalendar', false);
         });
     });
+
+    closeEventButtons.forEach(function (button) {
+        button.addEventListener('click', closeEventModal);
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && eventModal.classList.contains('is-open')) {
+            closeEventModal();
+        }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const initialTab = params.get('tab') || '{{ active_detail_tab }}';
+    setActiveTab(initialTab, false);
+
+    void groupId;
+
 })();
 </script>
 {% endblock %}
