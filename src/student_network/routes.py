@@ -96,7 +96,7 @@ def _build_comment_tree(comment_rows) -> list[dict]:
             'user_id': row['user_id'],
             'parent_comment_id': row['parent_comment_id'],
             'text': row['text'],
-            'created_at': row['created_at'].replace('T', ' '),
+            'created_at': _format_datetime_eu(row['created_at']),
             'author': f"{row['author_meno']} {row['author_priezvisko']}",
             'children': [],
         }
@@ -110,6 +110,34 @@ def _build_comment_tree(comment_rows) -> list[dict]:
             root_comments.append(comment)
 
     return root_comments
+
+
+def _format_date_eu(date_value: str) -> str:
+    try:
+        parsed = datetime.strptime(date_value, '%Y-%m-%d')
+    except (TypeError, ValueError):
+        return date_value
+    return parsed.strftime('%d/%m/%Y')
+
+
+def _format_time_24(time_value: str) -> str:
+    for time_pattern in ('%H:%M', '%H:%M:%S'):
+        try:
+            parsed = datetime.strptime(time_value, time_pattern)
+            return parsed.strftime('%H:%M')
+        except (TypeError, ValueError):
+            continue
+    return time_value
+
+
+def _format_datetime_eu(datetime_value: str) -> str:
+    for date_pattern in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S'):
+        try:
+            parsed = datetime.strptime(datetime_value, date_pattern)
+            return parsed.strftime('%d/%m/%Y %H:%M')
+        except (TypeError, ValueError):
+            continue
+    return datetime_value
 
 
 def _parse_group_month(raw_value: str) -> tuple[int, int]:
@@ -401,6 +429,8 @@ def register_routes(app: Flask) -> None:
                 'id': row['id'],
                 'event_date': row['event_date'],
                 'event_time': row['event_time'],
+                'event_date_display': _format_date_eu(row['event_date']),
+                'event_time_display': _format_time_24(row['event_time']),
                 'nazov': row['nazov'],
                 'popis': row['popis'],
                 'author': f"{row['actor_meno']} {row['actor_priezvisko']}",
@@ -421,10 +451,12 @@ def register_routes(app: Flask) -> None:
                 'id': row['id'],
                 'action_type': row['action_type'],
                 'message': row['message'],
-                'created_at': row['created_at'].replace('T', ' '),
+                'created_at': _format_datetime_eu(row['created_at']),
                 'actor': f"{row['actor_meno']} {row['actor_priezvisko']}",
-                'event_date': row['event_date'],
-                'event_time': row['event_time'],
+                'event_date': row['event_date'] or row['notification_event_date'],
+                'event_time': row['event_time'] or row['notification_event_time'],
+                'event_date_display': _format_date_eu(row['event_date'] or row['notification_event_date']),
+                'event_time_display': _format_time_24(row['event_time'] or row['notification_event_time']),
                 'event_nazov': row['event_nazov'],
             }
             for row in notification_rows
@@ -484,13 +516,15 @@ def register_routes(app: Flask) -> None:
                 flash('Udalosť sa nenašla.', 'error')
                 return _redirect_calendar(redirect_month)
 
-            event_label = f"{existing_event['event_date']} {existing_event['event_time']} - {existing_event['nazov']}"
+            event_label = f"{_format_date_eu(existing_event['event_date'])} {_format_time_24(existing_event['event_time'])} - {existing_event['nazov']}"
             delete_group_event(group_id=group_id, event_id=event_id)
             create_group_event_notification(
                 group_id=group_id,
                 event_id=None,
                 actor_user_id=int(g.user['id']),
                 action_type='delete',
+                event_date=existing_event['event_date'],
+                event_time=existing_event['event_time'],
                 message=f"Udalosť bola odstránená: {event_label}",
             )
             flash('Udalosť bola odstránená.', 'success')
@@ -541,7 +575,9 @@ def register_routes(app: Flask) -> None:
                 event_id=new_event_id,
                 actor_user_id=int(g.user['id']),
                 action_type='create',
-                message=f"Nová udalosť: {event_date_raw} {event_time_raw} - {event_title}",
+                event_date=event_date_raw,
+                event_time=event_time_raw,
+                message=f"Nová udalosť: {_format_date_eu(event_date_raw)} {_format_time_24(event_time_raw)} - {event_title}",
             )
             flash('Udalosť bola vytvorená.', 'success')
             return _redirect_calendar(redirect_month)
@@ -569,7 +605,9 @@ def register_routes(app: Flask) -> None:
                 event_id=event_id,
                 actor_user_id=int(g.user['id']),
                 action_type='update',
-                message=f"Upravená udalosť: {event_date_raw} {event_time_raw} - {event_title}",
+                event_date=event_date_raw,
+                event_time=event_time_raw,
+                message=f"Upravená udalosť: {_format_date_eu(event_date_raw)} {_format_time_24(event_time_raw)} - {event_title}",
             )
             flash('Udalosť bola upravená.', 'success')
             return _redirect_calendar(redirect_month)
@@ -761,7 +799,7 @@ def register_routes(app: Flask) -> None:
             'nazov': post_row['nazov'],
             'popis': post_row['popis'],
             'autor': f"{post_row['author_meno']} {post_row['author_priezvisko']}",
-            'datum_vytvorenia': post_row['datum_vytvorenia'].replace('T', ' '),
+            'datum_vytvorenia': _format_datetime_eu(post_row['datum_vytvorenia']),
             'nahladovy_obrazok_url': url_for('static', filename=post_row['nahladovy_obrazok']) if post_row['nahladovy_obrazok'] else None,
             'subor_url': url_for('static', filename=post_row['subor']) if post_row['subor'] else None,
             'subor_povodny_nazov': post_row['subor_povodny_nazov'],
@@ -796,7 +834,7 @@ def register_routes(app: Flask) -> None:
                 'id': row['id'],
                 'nazov': row['nazov'],
                 'post_slug': _slugify(row['nazov']),
-                'datum_vytvorenia': row['datum_vytvorenia'].replace('T', ' '),
+                'datum_vytvorenia': _format_datetime_eu(row['datum_vytvorenia']),
             }
             for row in user_posts_rows
         ]

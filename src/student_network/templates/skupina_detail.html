@@ -42,7 +42,7 @@
                         <article class="group-notification-item">
                             <p class="group-notification-message">{{ item.message }}</p>
                             {% if item.event_nazov and item.event_date and item.event_time %}
-                                <p class="group-notification-event">Udalosť: {{ item.event_date }} {{ item.event_time }} - {{ item.event_nazov }}</p>
+                                <p class="group-notification-event">Udalosť: {{ item.event_date_display }} {{ item.event_time_display }} - {{ item.event_nazov }}</p>
                             {% endif %}
                             <p class="group-notification-meta">{{ item.actor }} • {{ item.created_at }}</p>
                         </article>
@@ -100,7 +100,7 @@
                 <div class="calendar-events-list">
                     {% for event in month_events %}
                         <article class="calendar-event-item">
-                            <p class="calendar-event-time">{{ event.event_date }} {{ event.event_time }}</p>
+                            <p class="calendar-event-time">{{ event.event_date_display }} {{ event.event_time_display }}</p>
                             <h4 class="calendar-event-title">{{ event.nazov }}</h4>
                             {% if event.popis %}
                                 <p class="calendar-event-description">{{ event.popis }}</p>
@@ -165,7 +165,7 @@
 
                 <div class="field">
                     <label for="group-event-time">Čas</label>
-                    <input id="group-event-time" name="event_time" type="time" required>
+                    <input id="group-event-time" name="event_time" type="text" inputmode="numeric" placeholder="HH:MM" pattern="^([01]\d|2[0-3]):([0-5]\d)$" required>
                 </div>
 
                 <div class="field">

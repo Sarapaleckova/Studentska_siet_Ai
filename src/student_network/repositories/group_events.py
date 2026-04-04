@@ -120,6 +120,8 @@ def create_group_event_notification(
     event_id: int | None,
     actor_user_id: int,
     action_type: str,
+    event_date: str,
+    event_time: str,
     message: str,
 ) -> None:
     database = get_db()
@@ -130,16 +132,20 @@ def create_group_event_notification(
             event_id,
             actor_user_id,
             action_type,
+            event_date,
+            event_time,
             message,
             created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             group_id,
             event_id,
             actor_user_id,
             action_type,
+            event_date,
+            event_time,
             message,
             datetime.utcnow().isoformat(timespec='seconds'),
         ),
@@ -159,6 +165,8 @@ def get_group_notifications(group_id: int, limit: int = 40) -> list[Row]:
             n.action_type,
             n.message,
             n.created_at,
+            n.event_date AS notification_event_date,
+            n.event_time AS notification_event_time,
             u.meno AS actor_meno,
             u.priezvisko AS actor_priezvisko,
             ge.event_date,
@@ -168,7 +176,26 @@ def get_group_notifications(group_id: int, limit: int = 40) -> list[Row]:
         JOIN users u ON u.id = n.actor_user_id
         LEFT JOIN group_events ge ON ge.id = n.event_id
         WHERE n.group_id = ?
-        ORDER BY n.id DESC
+        ORDER BY
+            CASE
+                WHEN COALESCE(NULLIF(ge.event_date, ''), NULLIF(n.event_date, '')) IS NOT NULL
+                    AND datetime(COALESCE(NULLIF(ge.event_date, ''), n.event_date) || ' ' || COALESCE(NULLIF(ge.event_time, ''), n.event_time)) >= datetime('now')
+                THEN 0
+                WHEN COALESCE(NULLIF(ge.event_date, ''), NULLIF(n.event_date, '')) IS NOT NULL
+                THEN 1
+                ELSE 2
+            END ASC,
+            CASE
+                WHEN COALESCE(NULLIF(ge.event_date, ''), NULLIF(n.event_date, '')) IS NOT NULL
+                    AND datetime(COALESCE(NULLIF(ge.event_date, ''), n.event_date) || ' ' || COALESCE(NULLIF(ge.event_time, ''), n.event_time)) >= datetime('now')
+                THEN datetime(COALESCE(NULLIF(ge.event_date, ''), n.event_date) || ' ' || COALESCE(NULLIF(ge.event_time, ''), n.event_time))
+            END ASC,
+            CASE
+                WHEN COALESCE(NULLIF(ge.event_date, ''), NULLIF(n.event_date, '')) IS NOT NULL
+                    AND datetime(COALESCE(NULLIF(ge.event_date, ''), n.event_date) || ' ' || COALESCE(NULLIF(ge.event_time, ''), n.event_time)) < datetime('now')
+                THEN datetime(COALESCE(NULLIF(ge.event_date, ''), n.event_date) || ' ' || COALESCE(NULLIF(ge.event_time, ''), n.event_time))
+            END DESC,
+            n.created_at DESC
         LIMIT ?
         """,
         (group_id, limit),

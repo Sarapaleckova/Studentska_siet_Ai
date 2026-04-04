@@ -100,6 +100,8 @@ CREATE TABLE IF NOT EXISTS group_event_notifications (
     event_id INTEGER,
     actor_user_id INTEGER NOT NULL,
     action_type TEXT NOT NULL CHECK (action_type IN ('create', 'update', 'delete')),
+    event_date TEXT NOT NULL DEFAULT '',
+    event_time TEXT NOT NULL DEFAULT '',
     message TEXT NOT NULL,
     created_at TEXT NOT NULL,
     FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
@@ -139,6 +141,7 @@ def init_db() -> None:
     database.executescript(SCHEMA)
     ensure_profile_photo_column(database)
     ensure_group_membership_joined_at_column(database)
+    ensure_group_event_notification_schedule_columns(database)
     ensure_seed_groups(database)
     database.commit()
 
@@ -160,6 +163,21 @@ def ensure_group_membership_joined_at_column(database: sqlite3.Connection) -> No
     if 'joined_at' not in existing_column_names:
         database.execute(
             "ALTER TABLE group_memberships ADD COLUMN joined_at TEXT NOT NULL DEFAULT ''"
+        )
+
+
+def ensure_group_event_notification_schedule_columns(database: sqlite3.Connection) -> None:
+    columns = database.execute("PRAGMA table_info(group_event_notifications)").fetchall()
+    existing_column_names = {column['name'] for column in columns}
+
+    if 'event_date' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE group_event_notifications ADD COLUMN event_date TEXT NOT NULL DEFAULT ''"
+        )
+
+    if 'event_time' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE group_event_notifications ADD COLUMN event_time TEXT NOT NULL DEFAULT ''"
         )
 
 
