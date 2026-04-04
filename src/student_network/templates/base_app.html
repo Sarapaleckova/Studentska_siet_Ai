@@ -18,6 +18,7 @@
         {% block content %}{% endblock %}
     </main>
 
+    {% if not hide_main_nav %}
     <nav class="bottom-nav">
         <a class="nav-item {% if active_tab == 'domov' %}active{% endif %}" href="{{ url_for('aplikacia_domov') }}">Domov</a>
         <a class="nav-item {% if active_tab == 'skupiny' %}active{% endif %}" href="{{ url_for('aplikacia_skupiny') }}">Skupiny</a>
@@ -25,6 +26,7 @@
         <a class="nav-item {% if active_tab == 'pridat' %}active{% endif %}" href="{{ url_for('aplikacia_pridat') }}">Pridať</a>
         <a class="nav-item {% if active_tab == 'profil' %}active{% endif %}" href="{{ url_for('aplikacia_profil') }}">Profil</a>
     </nav>
+    {% endif %}
 
     <script>
     (function () {

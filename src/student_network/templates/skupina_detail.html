@@ -3,25 +3,96 @@
 {% block title %}{{ group.nazov }}{% endblock %}
 
 {% block content %}
-<h1>{{ group.nazov }}</h1>
-{% if g.user %}
-<p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
-{% endif %}
+<section class="group-detail-page">
+    <header class="group-detail-header">
+        <div class="group-detail-image-wrap">
+            {% if group.obrazok_url %}
+                <img class="group-detail-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
+            {% else %}
+                <div class="group-detail-image group-card-image-placeholder" aria-hidden="true"></div>
+            {% endif %}
+        </div>
+        <div class="group-detail-title-wrap">
+            <h1>{{ group.nazov }}</h1>
+            <p class="group-detail-meta">{{ group.member_count }} členov{% if group.je_sukromna %} • Súkromná skupina{% else %} • Verejná skupina{% endif %}</p>
+        </div>
+    </header>
 
-<section class="section-card group-detail-card">
-    <div class="group-detail-image-wrap">
-        {% if group.obrazok_url %}
-            <img class="group-detail-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
-        {% else %}
-            <div class="group-detail-image group-card-image-placeholder" aria-hidden="true"></div>
-        {% endif %}
-    </div>
+    <main class="group-detail-main" id="group-detail-main-content">
+        <section class="section-card group-tab-panel active" data-tab-panel="zdielat">
+            <h2>Zdieľať</h2>
+            <p class="group-detail-description">{{ group.popis }}</p>
+            <p class="group-tab-note">V tejto sekcii môžeš zdieľať príspevky, oznamy a študijné materiály pre členov skupiny.</p>
+        </section>
 
-    <p class="group-detail-meta">{{ group.member_count }} členov{% if group.je_sukromna %} • Súkromná skupina{% else %} • Verejná skupina{% endif %}</p>
-    <p class="group-detail-description">{{ group.popis }}</p>
+        <section class="section-card group-tab-panel" data-tab-panel="notifikacie" hidden>
+            <h2>Notifikácie</h2>
+            <ul class="group-list">
+                <li>Nové príspevky v skupine: zapnuté</li>
+                <li>Komentáre na tvoje príspevky: zapnuté</li>
+                <li>Pozvánky na udalosti: zapnuté</li>
+            </ul>
+        </section>
 
-    <div class="actions">
-        <a class="btn-link" href="{{ url_for('aplikacia_skupiny') }}">Späť na skupiny</a>
-    </div>
+        <section class="section-card group-tab-panel" data-tab-panel="kalendar" hidden>
+            <h2>Kalendár</h2>
+            <ul class="group-list">
+                <li>Pondelok 18:00 - Stretnutie členov</li>
+                <li>Streda 16:30 - Konzultácie k projektom</li>
+                <li>Piatok 15:00 - Plánovanie ďalšieho týždňa</li>
+            </ul>
+        </section>
+
+        <section class="section-card group-tab-panel" data-tab-panel="clenovia" hidden>
+            <h2>Členovia</h2>
+            <p>Skupina má aktuálne {{ group.member_count }} členov.</p>
+            <p class="group-tab-note">Detailný zoznam členov je možné doplniť napojením na samostatnú tabuľku rolí a profilov skupiny.</p>
+        </section>
+
+        <section class="section-card group-tab-panel" data-tab-panel="subory" hidden>
+            <h2>Súbory</h2>
+            <p>Pre túto skupinu zatiaľ nie sú nahraté žiadne skupinové súbory.</p>
+            <p class="group-tab-note">Sekcia je pripravená na napojenie uploadov skupinových materiálov.</p>
+        </section>
+    </main>
+
+    <nav class="group-bottom-nav" aria-label="Sekcie detailu skupiny">
+        <button class="group-nav-item active" type="button" data-tab-target="zdielat">Zdieľať</button>
+        <button class="group-nav-item" type="button" data-tab-target="notifikacie">Notifikácie</button>
+        <button class="group-nav-item" type="button" data-tab-target="kalendar">Kalendár</button>
+        <button class="group-nav-item" type="button" data-tab-target="clenovia">Členovia</button>
+        <button class="group-nav-item" type="button" data-tab-target="subory">Súbory</button>
+    </nav>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const navItems = document.querySelectorAll('.group-nav-item');
+    const panels = document.querySelectorAll('.group-tab-panel');
+
+    if (navItems.length === 0 || panels.length === 0) {
+        return;
+    }
+
+    const activateTab = function (tabName) {
+        navItems.forEach(function (button) {
+            button.classList.toggle('active', button.dataset.tabTarget === tabName);
+        });
+
+        panels.forEach(function (panel) {
+            const shouldShow = panel.dataset.tabPanel === tabName;
+            panel.classList.toggle('active', shouldShow);
+            panel.hidden = !shouldShow;
+        });
+    };
+
+    navItems.forEach(function (button) {
+        button.addEventListener('click', function () {
+            activateTab(button.dataset.tabTarget);
+        });
+    });
+})();
+</script>
 {% endblock %}

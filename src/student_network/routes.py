@@ -301,6 +301,7 @@ def register_routes(app: Flask) -> None:
             'skupina_detail.html',
             active_tab='skupiny',
             group=group_view,
+            hide_main_nav=True,
         )
 
     @app.route(f'{APP_BASE_PATH}/hladat')
