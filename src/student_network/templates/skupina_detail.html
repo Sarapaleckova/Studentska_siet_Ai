@@ -22,7 +22,7 @@
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
-                <p class="flash-message flash-{{ category }}">{{ message }}</p>
+                <p class="flash-message flash-{{ category }}" data-group-flash="1">{{ message }}</p>
             {% endfor %}
         {% endif %}
     {% endwith %}
@@ -213,6 +213,7 @@
     const eventSubmit = document.getElementById('group-event-submit');
     const openEventButtons = document.querySelectorAll('[data-open-event-modal="1"]');
     const closeEventButtons = document.querySelectorAll('[data-close-event-modal="1"]');
+    const flashMessages = document.querySelectorAll('[data-group-flash="1"]');
 
     const setActiveTab = function (tabName, updateUrl) {
         if (!tabName) {
@@ -232,6 +233,10 @@
             const shouldShow = panel.dataset.tabPanel === tabName;
             panel.classList.toggle('active', shouldShow);
             panel.hidden = !shouldShow;
+        });
+
+        flashMessages.forEach(function (message) {
+            message.style.display = 'none';
         });
 
         if (updateUrl) {

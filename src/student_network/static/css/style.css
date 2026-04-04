@@ -1316,6 +1316,24 @@ body.modal-open {
     padding-right: 40px;
 }
 
+.event-modal-panel label {
+    color: #102246;
+    font-weight: 600;
+}
+
+.event-modal-panel input,
+.event-modal-panel textarea {
+    color: #102246;
+    background: #ffffff;
+    border: 1px solid #b7c4e0;
+    border-radius: 8px;
+}
+
+.event-modal-panel input::placeholder,
+.event-modal-panel textarea::placeholder {
+    color: #667ba7;
+}
+
 .event-form .actions {
     margin-top: 6px;
 }
