@@ -3,6 +3,7 @@
 {% block title %}{{ form_title }}{% endblock %}
 
 {% block content %}
+<div id="group-settings-root" data-is-edit="{{ 1 if is_edit else 0 }}">
 <h1>{{ form_title }}</h1>
 {% if g.user %}
 <p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
@@ -33,7 +34,16 @@
 
         <div class="field">
             <label for="profilova_fotka">Profilová fotka skupiny</label>
+            <div class="drop-zone profile-drop-zone" id="group-photo-drop-zone" tabindex="0">
+                <p class="drop-zone-title">Potiahnite obrázok sem alebo kliknite pre výber</p>
+                <p class="drop-zone-types">Podporované formáty: PNG, JPG, JPEG, WEBP, GIF</p>
+                <p class="drop-zone-selected" id="group-photo-selected-name">Žiadny súbor nebol vybraný.</p>
+            </div>
             <input id="profilova_fotka" name="profilova_fotka" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+            <div class="group-settings-photo-preview" id="group-photo-preview-wrap" {% if not group_photo_url %}hidden{% endif %}>
+                <img id="group-photo-preview" src="{{ group_photo_url if group_photo_url else '' }}" alt="Náhľad fotky skupiny" class="group-settings-photo-image">
+                <p class="event-input-hint">Náhľad pripravený. Zmenu potvrďte uložením.</p>
+            </div>
             <p class="form-error field-error" aria-live="polite">{{ errors.profilova_fotka if errors else '' }}</p>
         </div>
 
@@ -133,35 +143,105 @@
     </div>
 </section>
 {% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}
-{% if is_edit %}
 <script>
 (function () {
-    const modeButtons = document.querySelectorAll('[data-role-mode]');
-    const modePanels = document.querySelectorAll('[data-role-panel]');
+    const rootNode = document.getElementById('group-settings-root');
+    const isEdit = !!rootNode && rootNode.dataset.isEdit === '1';
+    const fileInput = document.getElementById('profilova_fotka');
+    const dropZone = document.getElementById('group-photo-drop-zone');
+    const fileNameLabel = document.getElementById('group-photo-selected-name');
+    const previewWrap = document.getElementById('group-photo-preview-wrap');
+    const previewImage = document.getElementById('group-photo-preview');
 
-    if (modeButtons.length === 0 || modePanels.length === 0) {
-        return;
+    if (fileInput && dropZone && fileNameLabel && previewWrap && previewImage) {
+        const isSupportedImage = function (file) {
+            return file && file.type && file.type.indexOf('image/') === 0;
+        };
+
+        const showPreview = function (file) {
+            if (!isSupportedImage(file)) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                previewImage.src = event.target && event.target.result ? event.target.result : '';
+                previewWrap.hidden = false;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        const assignFile = function (file) {
+            if (!isSupportedImage(file)) {
+                return;
+            }
+
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            fileInput.files = transfer.files;
+            fileNameLabel.textContent = file.name;
+            showPreview(file);
+        };
+
+        dropZone.addEventListener('click', function () {
+            fileInput.click();
+        });
+
+        dropZone.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            dropZone.classList.add('drop-zone-active');
+        });
+
+        dropZone.addEventListener('dragleave', function () {
+            dropZone.classList.remove('drop-zone-active');
+        });
+
+        dropZone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            dropZone.classList.remove('drop-zone-active');
+            const file = event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null;
+            if (file) {
+                assignFile(file);
+            }
+        });
+
+        fileInput.addEventListener('change', function () {
+            const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+            if (file) {
+                fileNameLabel.textContent = file.name;
+                showPreview(file);
+            }
+        });
     }
 
-    const activateMode = function (modeName) {
+    if (isEdit) {
+        const modeButtons = document.querySelectorAll('[data-role-mode]');
+        const modePanels = document.querySelectorAll('[data-role-panel]');
+
+        if (modeButtons.length === 0 || modePanels.length === 0) {
+            return;
+        }
+
+        const activateMode = function (modeName) {
+            modeButtons.forEach(function (button) {
+                button.classList.toggle('active', button.dataset.roleMode === modeName);
+            });
+
+            modePanels.forEach(function (panel) {
+                panel.hidden = panel.dataset.rolePanel !== modeName;
+            });
+        };
+
         modeButtons.forEach(function (button) {
-            button.classList.toggle('active', button.dataset.roleMode === modeName);
+            button.addEventListener('click', function () {
+                activateMode(button.dataset.roleMode);
+            });
         });
-
-        modePanels.forEach(function (panel) {
-            panel.hidden = panel.dataset.rolePanel !== modeName;
-        });
-    };
-
-    modeButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-            activateMode(button.dataset.roleMode);
-        });
-    });
+    }
 })();
 </script>
-{% endif %}
 {% endblock %}

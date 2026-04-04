@@ -35,7 +35,16 @@
     {% if edit_mode %}
         <div class="field profile-photo-field">
             <label for="profilova_fotka">Profilová fotografia</label>
+            <div class="drop-zone profile-drop-zone" id="profile-photo-drop-zone" tabindex="0">
+                <p class="drop-zone-title">Potiahnite obrázok sem alebo kliknite pre výber</p>
+                <p class="drop-zone-types">Podporované formáty: PNG, JPG, JPEG, WEBP, GIF</p>
+                <p class="drop-zone-selected" id="profile-photo-selected-name">Žiadny súbor nebol vybraný.</p>
+            </div>
             <input id="profilova_fotka" name="profilova_fotka" type="file" accept="image/png,image/jpeg,image/webp,image/gif" form="profile-edit-form">
+            <div class="profile-upload-preview" id="profile-photo-preview-wrap" {% if not profile_photo_url %}hidden{% endif %}>
+                <img id="profile-photo-preview" src="{{ profile_photo_url if profile_photo_url else '' }}" alt="Náhľad profilovej fotografie" class="group-settings-photo-image">
+                <p class="event-input-hint">Náhľad pripravený. Zmenu potvrďte uložením profilu.</p>
+            </div>
             <p class="form-error field-error" aria-live="polite">{{ errors.profilova_fotka if errors else '' }}</p>
         </div>
     {% endif %}
@@ -88,6 +97,32 @@
 </section>
 
 <section class="section-card profile-card">
+    <h2>Skupiny</h2>
+    {% if user_groups %}
+        <div class="group-member-list">
+            {% for group in user_groups %}
+                <a class="group-card member-group-card" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='zdielat', _anchor='group-description') }}">
+                    <div class="group-card-image-wrap">
+                        {% if group.obrazok_url %}
+                            <img class="group-card-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
+                        {% else %}
+                            <div class="group-card-image group-card-image-placeholder" aria-hidden="true"></div>
+                        {% endif %}
+                    </div>
+                    <div class="group-card-body">
+                        <h3 class="group-card-title">{{ group.nazov }}</h3>
+                        <p class="group-card-meta">{{ group.member_count }} členov</p>
+                        <p class="group-card-status">Rola: {% if group.membership_role == 'admin' %}Administrátor{% else %}Člen{% endif %}</p>
+                    </div>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>Používateľ zatiaľ nie je členom žiadnej skupiny.</p>
+    {% endif %}
+</section>
+
+<section class="section-card profile-card">
     <h2>Príspevky autora</h2>
     {% if user_posts %}
         <ul class="profile-post-list">
@@ -104,4 +139,81 @@
         <p>Autor zatiaľ nepridal žiadne príspevky.</p>
     {% endif %}
 </section>
+{% endblock %}
+
+{% block scripts %}
+{% if edit_mode %}
+<script>
+(function () {
+    const fileInput = document.getElementById('profilova_fotka');
+    const dropZone = document.getElementById('profile-photo-drop-zone');
+    const fileNameLabel = document.getElementById('profile-photo-selected-name');
+    const previewWrap = document.getElementById('profile-photo-preview-wrap');
+    const previewImage = document.getElementById('profile-photo-preview');
+
+    if (!fileInput || !dropZone || !fileNameLabel || !previewWrap || !previewImage) {
+        return;
+    }
+
+    const isSupportedImage = function (file) {
+        return file && file.type && file.type.indexOf('image/') === 0;
+    };
+
+    const showPreview = function (file) {
+        if (!isSupportedImage(file)) {
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (event) {
+            previewImage.src = event.target && event.target.result ? event.target.result : '';
+            previewWrap.hidden = false;
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const assignFile = function (file) {
+        if (!isSupportedImage(file)) {
+            return;
+        }
+
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        fileInput.files = transfer.files;
+        fileNameLabel.textContent = file.name;
+        showPreview(file);
+    };
+
+    dropZone.addEventListener('click', function () {
+        fileInput.click();
+    });
+
+    dropZone.addEventListener('dragover', function (event) {
+        event.preventDefault();
+        dropZone.classList.add('drop-zone-active');
+    });
+
+    dropZone.addEventListener('dragleave', function () {
+        dropZone.classList.remove('drop-zone-active');
+    });
+
+    dropZone.addEventListener('drop', function (event) {
+        event.preventDefault();
+        dropZone.classList.remove('drop-zone-active');
+        const file = event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null;
+        if (file) {
+            assignFile(file);
+        }
+    });
+
+    fileInput.addEventListener('change', function () {
+        const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+        if (file) {
+            fileNameLabel.textContent = file.name;
+            showPreview(file);
+        }
+    });
+})();
+</script>
+{% endif %}
 {% endblock %}

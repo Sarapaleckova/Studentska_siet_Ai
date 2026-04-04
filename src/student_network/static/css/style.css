@@ -1425,6 +1425,10 @@ body.modal-open {
     margin-bottom: 12px;
 }
 
+.profile-drop-zone {
+    margin-bottom: 8px;
+}
+
 .group-settings-photo-image {
     width: 120px;
     height: 120px;
@@ -1437,6 +1441,7 @@ body.modal-open {
     border: 1px solid #d8dfef;
     border-radius: 10px;
     padding: 10px;
+    text-align: left;
 }
 
 .group-access-fieldset legend {
@@ -1449,6 +1454,7 @@ body.modal-open {
     display: flex;
     gap: 8px;
     align-items: center;
+    justify-content: flex-start;
     margin-bottom: 6px;
     color: #132a56;
 }

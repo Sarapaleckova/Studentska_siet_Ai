@@ -38,6 +38,34 @@ def get_groups_for_user(user_id: int, search_query: str) -> list[Row]:
     return list(rows)
 
 
+def get_member_groups_for_user(user_id: int) -> list[Row]:
+    database = get_db()
+    rows = database.execute(
+        """
+        SELECT
+            g.id,
+            g.nazov,
+            g.popis,
+            g.obrazok_url,
+            g.je_sukromna,
+            gm.role AS membership_role,
+            COALESCE(member_counts.member_count, 0) AS member_count
+        FROM group_memberships gm
+        JOIN groups_table g ON g.id = gm.group_id
+        LEFT JOIN (
+            SELECT group_id, COUNT(*) AS member_count
+            FROM group_memberships
+            WHERE status = 'member'
+            GROUP BY group_id
+        ) member_counts ON member_counts.group_id = g.id
+        WHERE gm.user_id = ? AND gm.status = 'member'
+        ORDER BY g.nazov COLLATE NOCASE ASC
+        """,
+        (user_id,),
+    ).fetchall()
+    return list(rows)
+
+
 def get_group_by_id(group_id: int) -> Row | None:
     database = get_db()
     return database.execute(

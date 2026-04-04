@@ -38,6 +38,7 @@ from student_network.repositories.groups import (
     get_group_members,
     get_pending_group_requests,
     get_groups_for_user,
+    get_member_groups_for_user,
     is_group_admin,
     join_public_group,
     reject_group_request,
@@ -1147,6 +1148,7 @@ def register_routes(app: Flask) -> None:
         errors: dict[str, str] = {}
         edit_mode = request.args.get('edit') == '1'
         user_posts_rows = get_posts_by_author_id(int(g.user['id']))
+        user_groups_rows = get_member_groups_for_user(int(g.user['id']))
         user_posts = [
             {
                 'id': row['id'],
@@ -1155,6 +1157,16 @@ def register_routes(app: Flask) -> None:
                 'datum_vytvorenia': _format_datetime_eu(row['datum_vytvorenia']),
             }
             for row in user_posts_rows
+        ]
+        user_groups = [
+            {
+                'id': row['id'],
+                'nazov': row['nazov'],
+                'obrazok_url': _group_image_src(row['obrazok_url']),
+                'membership_role': row['membership_role'],
+                'member_count': int(row['member_count'] or 0),
+            }
+            for row in user_groups_rows
         ]
         profile = get_profile_by_user_id(int(g.user['id']))
         profile_values = profile_values_from_row(profile)
@@ -1216,4 +1228,5 @@ def register_routes(app: Flask) -> None:
             errors=errors,
             edit_mode=edit_mode,
             user_posts=user_posts,
+            user_groups=user_groups,
         )
