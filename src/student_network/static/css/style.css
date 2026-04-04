@@ -850,6 +850,10 @@ body.modal-open {
     margin-bottom: 16px;
 }
 
+.groups-create-action {
+    margin-bottom: 14px;
+}
+
 .section-heading {
     margin-top: 0;
     margin-bottom: 12px;
@@ -1064,6 +1068,10 @@ body.modal-open {
     margin: 0;
 }
 
+.group-admin-actions {
+    margin-top: 8px;
+}
+
 .group-detail-main {
     display: flex;
     flex-direction: column;
@@ -1089,6 +1097,64 @@ body.modal-open {
 
 .group-list li {
     margin-bottom: 8px;
+}
+
+.group-member-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.group-member-item {
+    border: 1px solid #d8dfef;
+    border-radius: 10px;
+    padding: 10px;
+    background: #ffffff;
+}
+
+.group-member-profile {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.group-member-profile .avatar-wrap {
+    width: 56px;
+    height: 56px;
+}
+
+.group-member-name {
+    margin: 0 0 5px 0;
+    color: #132a56;
+    font-weight: 700;
+}
+
+.group-member-meta {
+    margin: 0;
+    color: #556993;
+    font-size: 0.87rem;
+}
+
+.group-member-controls {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.group-inline-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.group-role-select {
+    min-width: 160px;
+    padding: 8px;
+    border: 1px solid #b7c4e0;
+    border-radius: 8px;
+    color: #132a56;
 }
 
 .group-notification-list {
@@ -1342,6 +1408,38 @@ body.modal-open {
     margin: 6px 0 0 0;
     color: #556993;
     font-size: 0.84rem;
+}
+
+.group-settings-photo-preview {
+    margin-bottom: 12px;
+}
+
+.group-settings-photo-image {
+    width: 120px;
+    height: 120px;
+    border-radius: 10px;
+    object-fit: cover;
+    display: block;
+}
+
+.group-access-fieldset {
+    border: 1px solid #d8dfef;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.group-access-fieldset legend {
+    color: #102246;
+    font-weight: 700;
+    padding: 0 5px;
+}
+
+.group-access-option {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+    color: #132a56;
 }
 
 .group-bottom-nav {

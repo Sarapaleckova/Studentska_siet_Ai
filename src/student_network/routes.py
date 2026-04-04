@@ -5,6 +5,7 @@ from datetime import date, datetime
 from functools import wraps
 from pathlib import Path
 import re
+import sqlite3
 import unicodedata
 from uuid import uuid4
 
@@ -28,11 +29,21 @@ from student_network.repositories.group_events import (
     update_group_event,
 )
 from student_network.repositories.groups import (
+    approve_group_request,
+    count_group_admins,
+    create_group,
     get_group_by_id,
     get_group_membership,
+    get_group_members,
+    get_pending_group_requests,
     get_groups_for_user,
+    is_group_admin,
     join_public_group,
+    reject_group_request,
+    remove_group_member,
     request_private_group_membership,
+    update_group,
+    update_member_role,
 )
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
 from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id
@@ -42,6 +53,7 @@ from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
 
 ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+ALLOWED_GROUP_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 APP_BASE_PATH = '/studentska-siet'
 GROUP_TABS = {'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'}
 
@@ -147,6 +159,14 @@ def _parse_event_date_input(date_value: str) -> date | None:
         except (TypeError, ValueError):
             continue
     return None
+
+
+def _group_image_src(image_value: str) -> str:
+    if not image_value:
+        return ''
+    if image_value.startswith('http://') or image_value.startswith('https://'):
+        return image_value
+    return url_for('static', filename=image_value)
 
 
 def _parse_group_month(raw_value: str) -> tuple[int, int]:
@@ -323,9 +343,10 @@ def register_routes(app: Flask) -> None:
                 'id': row['id'],
                 'nazov': row['nazov'],
                 'popis': row['popis'],
-                'obrazok_url': row['obrazok_url'],
+                'obrazok_url': _group_image_src(row['obrazok_url']),
                 'je_sukromna': bool(row['je_sukromna']),
                 'member_count': int(row['member_count'] or 0),
+                'membership_role': row['membership_role'] or 'member',
             }
             for row in group_rows
             if row['membership_status'] == 'member'
@@ -336,7 +357,7 @@ def register_routes(app: Flask) -> None:
                 'id': row['id'],
                 'nazov': row['nazov'],
                 'popis': row['popis'],
-                'obrazok_url': row['obrazok_url'],
+                'obrazok_url': _group_image_src(row['obrazok_url']),
                 'je_sukromna': bool(row['je_sukromna']),
                 'member_count': int(row['member_count'] or 0),
                 'membership_status': row['membership_status'] or '',
@@ -351,6 +372,80 @@ def register_routes(app: Flask) -> None:
             search_query=search_query,
             member_groups=member_groups,
             non_member_groups=non_member_groups,
+        )
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/vytvorit', methods=['GET', 'POST'])
+    @login_required
+    def aplikacia_skupiny_vytvorit() -> str:
+        errors: dict[str, str] = {}
+        values = {
+            'nazov': '',
+            'popis': '',
+            'pristupnost': 'public',
+        }
+
+        if request.method == 'POST':
+            values['nazov'] = request.form.get('nazov', '').strip()
+            values['popis'] = request.form.get('popis', '').strip()
+            values['pristupnost'] = request.form.get('pristupnost', 'public').strip()
+
+            if not values['nazov']:
+                errors['nazov'] = 'Názov skupiny je povinný.'
+            elif len(values['nazov']) > 120:
+                errors['nazov'] = 'Názov môže mať najviac 120 znakov.'
+
+            if len(values['popis']) > 2000:
+                errors['popis'] = 'Popis môže mať najviac 2000 znakov.'
+
+            if values['pristupnost'] not in {'public', 'private'}:
+                errors['pristupnost'] = 'Neplatná prístupnosť skupiny.'
+
+            image_relative_path = ''
+            uploaded_photo = request.files.get('profilova_fotka')
+            if uploaded_photo and uploaded_photo.filename:
+                image_filename = secure_filename(uploaded_photo.filename)
+                image_extension = Path(image_filename).suffix.lower()
+
+                if image_extension not in ALLOWED_GROUP_PHOTO_EXTENSIONS:
+                    errors['profilova_fotka'] = 'Povolené formáty: PNG, JPG, JPEG, WEBP, GIF.'
+                else:
+                    stored_image_name, _ = _save_uploaded_file(
+                        uploaded_photo,
+                        Path(app.config['GROUP_PHOTO_UPLOAD_DIR']),
+                        int(g.user['id']),
+                    )
+                    image_relative_path = f"uploads/group_photos/{stored_image_name}"
+
+            existing_group = None
+            if values['nazov']:
+                existing_group = next((row for row in get_groups_for_user(int(g.user['id']), values['nazov']) if row['nazov'].lower() == values['nazov'].lower()), None)
+            if existing_group is not None:
+                errors['nazov'] = 'Skupina s týmto názvom už existuje.'
+
+            if not errors:
+                try:
+                    new_group_id = create_group(
+                        creator_user_id=int(g.user['id']),
+                        nazov=values['nazov'],
+                        popis=values['popis'],
+                        obrazok_url=image_relative_path,
+                        je_sukromna=values['pristupnost'] == 'private',
+                    )
+                except sqlite3.IntegrityError:
+                    errors['nazov'] = 'Skupina s týmto názvom už existuje.'
+                else:
+                    flash('Skupina bola úspešne vytvorená.', 'success')
+                    return redirect(url_for('aplikacia_skupina_detail', group_id=new_group_id))
+
+        return render_template(
+            'skupina_form.html',
+            active_tab='skupiny',
+            form_title='Vytvoriť skupinu',
+            submit_label='Vytvoriť skupinu',
+            values=values,
+            errors=errors,
+            is_edit=False,
+            group_photo_url=None,
         )
 
     @app.route(f'{APP_BASE_PATH}/skupiny/akcia', methods=['POST'])
@@ -417,10 +512,37 @@ def register_routes(app: Flask) -> None:
             'id': group['id'],
             'nazov': group['nazov'],
             'popis': group['popis'],
-            'obrazok_url': group['obrazok_url'],
+            'obrazok_url': _group_image_src(group['obrazok_url']),
             'je_sukromna': bool(group['je_sukromna']),
             'member_count': int(group['member_count'] or 0),
         }
+
+        user_is_admin = is_group_admin(group_id=group_id, user_id=int(g.user['id']))
+        member_rows = get_group_members(group_id)
+        members = [
+            {
+                'user_id': row['user_id'],
+                'meno': row['meno'],
+                'priezvisko': row['priezvisko'],
+                'full_name': f"{row['meno']} {row['priezvisko']}",
+                'role': row['role'],
+                'joined_at': _format_datetime_eu(row['joined_at']) if row['joined_at'] else '',
+                'photo_url': url_for('static', filename=row['profilova_fotka']) if row['profilova_fotka'] else None,
+                'is_current_user': int(row['user_id']) == int(g.user['id']),
+            }
+            for row in member_rows
+        ]
+
+        pending_rows = get_pending_group_requests(group_id) if user_is_admin else []
+        pending_requests = [
+            {
+                'user_id': row['user_id'],
+                'full_name': f"{row['meno']} {row['priezvisko']}",
+                'requested_at': _format_datetime_eu(row['requested_at']),
+                'photo_url': url_for('static', filename=row['profilova_fotka']) if row['profilova_fotka'] else None,
+            }
+            for row in pending_rows
+        ]
 
         month_value = request.args.get('month', '').strip()
         year_value, month_number = _parse_group_month(month_value)
@@ -487,7 +609,157 @@ def register_routes(app: Flask) -> None:
             month_events=month_events,
             notifications=notifications,
             week_days=['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'],
+            members=members,
+            pending_requests=pending_requests,
+            is_group_admin=user_is_admin,
         )
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/nastavenia', methods=['GET', 'POST'])
+    @login_required
+    def aplikacia_skupina_nastavenia(group_id: int) -> str:
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        if not is_group_admin(group_id=group_id, user_id=int(g.user['id'])):
+            flash('Nastavenia môže meniť len administrátor skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+        errors: dict[str, str] = {}
+        values = {
+            'nazov': group['nazov'],
+            'popis': group['popis'],
+            'pristupnost': 'private' if bool(group['je_sukromna']) else 'public',
+        }
+        current_image_path = group['obrazok_url']
+
+        if request.method == 'POST':
+            values['nazov'] = request.form.get('nazov', '').strip()
+            values['popis'] = request.form.get('popis', '').strip()
+            values['pristupnost'] = request.form.get('pristupnost', 'public').strip()
+
+            if not values['nazov']:
+                errors['nazov'] = 'Názov skupiny je povinný.'
+            elif len(values['nazov']) > 120:
+                errors['nazov'] = 'Názov môže mať najviac 120 znakov.'
+
+            if len(values['popis']) > 2000:
+                errors['popis'] = 'Popis môže mať najviac 2000 znakov.'
+
+            if values['pristupnost'] not in {'public', 'private'}:
+                errors['pristupnost'] = 'Neplatná prístupnosť skupiny.'
+
+            uploaded_photo = request.files.get('profilova_fotka')
+            if uploaded_photo and uploaded_photo.filename:
+                image_filename = secure_filename(uploaded_photo.filename)
+                image_extension = Path(image_filename).suffix.lower()
+
+                if image_extension not in ALLOWED_GROUP_PHOTO_EXTENSIONS:
+                    errors['profilova_fotka'] = 'Povolené formáty: PNG, JPG, JPEG, WEBP, GIF.'
+                else:
+                    stored_image_name, _ = _save_uploaded_file(
+                        uploaded_photo,
+                        Path(app.config['GROUP_PHOTO_UPLOAD_DIR']),
+                        int(g.user['id']),
+                    )
+                    current_image_path = f"uploads/group_photos/{stored_image_name}"
+
+            if not errors:
+                try:
+                    update_group(
+                        group_id=group_id,
+                        nazov=values['nazov'],
+                        popis=values['popis'],
+                        obrazok_url=current_image_path,
+                        je_sukromna=values['pristupnost'] == 'private',
+                    )
+                except sqlite3.IntegrityError:
+                    errors['nazov'] = 'Skupina s týmto názvom už existuje.'
+                else:
+                    flash('Nastavenia skupiny boli uložené.', 'success')
+                    return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+        group_photo_url = _group_image_src(current_image_path)
+        return render_template(
+            'skupina_form.html',
+            active_tab='skupiny',
+            form_title='Nastavenia skupiny',
+            submit_label='Uložiť nastavenia',
+            values=values,
+            errors=errors,
+            is_edit=True,
+            group_photo_url=group_photo_url,
+            group_id=group_id,
+        )
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/clenovia', methods=['POST'])
+    @login_required
+    def aplikacia_skupina_clenovia(group_id: int) -> str:
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        if not is_group_admin(group_id=group_id, user_id=int(g.user['id'])):
+            flash('Členov môže spravovať len administrátor skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+        member_action = request.form.get('member_action', '').strip().lower()
+        try:
+            target_user_id = int(request.form.get('target_user_id', '0'))
+        except ValueError:
+            target_user_id = 0
+
+        if target_user_id <= 0:
+            flash('Neplatný člen skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+        if member_action == 'set_role':
+            role_value = request.form.get('role', '').strip().lower()
+            if role_value not in {'admin', 'member'}:
+                flash('Neplatná rola.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+            target_membership = get_group_membership(group_id=group_id, user_id=target_user_id)
+            if target_membership is None or target_membership['status'] != 'member':
+                flash('Člen sa nenašiel.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+            if target_user_id == int(g.user['id']) and role_value != 'admin' and count_group_admins(group_id) <= 1:
+                flash('Nemôžete odobrať posledného administrátora.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+            update_member_role(group_id=group_id, member_user_id=target_user_id, role=role_value)
+            flash('Rola člena bola aktualizovaná.', 'success')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+        if member_action == 'remove_member':
+            target_membership = get_group_membership(group_id=group_id, user_id=target_user_id)
+            if target_membership is None or target_membership['status'] != 'member':
+                flash('Člen sa nenašiel.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+            if target_membership['role'] == 'admin' and count_group_admins(group_id) <= 1:
+                flash('Nie je možné odstrániť posledného administrátora.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+            remove_group_member(group_id=group_id, member_user_id=target_user_id)
+            flash('Člen bol odstránený zo skupiny.', 'success')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+        if member_action == 'approve_request':
+            approve_group_request(group_id=group_id, user_id=target_user_id)
+            flash('Žiadosť bola schválená.', 'success')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+        if member_action == 'reject_request':
+            reject_group_request(group_id=group_id, user_id=target_user_id)
+            flash('Žiadosť bola zamietnutá.', 'success')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
+
+        flash('Neplatná akcia správy členov.', 'error')
+        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
 
     @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/udalosti', methods=['POST'])
     @login_required

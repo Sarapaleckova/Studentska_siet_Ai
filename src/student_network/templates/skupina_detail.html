@@ -16,6 +16,11 @@
         <div class="group-detail-title-wrap">
             <h1>{{ group.nazov }}</h1>
             <p class="group-detail-meta">{{ group.member_count }} členov{% if group.je_sukromna %} • Súkromná skupina{% else %} • Verejná skupina{% endif %}</p>
+            {% if is_group_admin %}
+                <div class="group-admin-actions">
+                    <a class="btn-link" href="{{ url_for('aplikacia_skupina_nastavenia', group_id=group.id) }}">Nastavenia skupiny</a>
+                </div>
+            {% endif %}
         </div>
     </header>
 
@@ -137,7 +142,90 @@
         <section class="section-card group-tab-panel {% if active_detail_tab == 'clenovia' %}active{% endif %}" data-tab-panel="clenovia" {% if active_detail_tab != 'clenovia' %}hidden{% endif %}>
             <h2>Členovia</h2>
             <p>Skupina má aktuálne {{ group.member_count }} členov.</p>
-            <p class="group-tab-note">Detailný zoznam členov je možné doplniť napojením na samostatnú tabuľku rolí a profilov skupiny.</p>
+
+            {% if members %}
+                <div class="group-member-list">
+                    {% for member in members %}
+                        <article class="group-member-item">
+                            <div class="group-member-profile">
+                                <div class="avatar-wrap" aria-hidden="true">
+                                    {% if member.photo_url %}
+                                        <img class="avatar-image" src="{{ member.photo_url }}" alt="Profilová fotka {{ member.full_name }}">
+                                    {% else %}
+                                        <div class="avatar-fallback"></div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <p class="group-member-name">{{ member.full_name }}{% if member.is_current_user %} (Vy){% endif %}</p>
+                                    <p class="group-member-meta">Rola: {% if member.role == 'admin' %}Administrátor{% else %}Člen{% endif %}{% if member.joined_at %} • Pridaný: {{ member.joined_at }}{% endif %}</p>
+                                </div>
+                            </div>
+
+                            {% if is_group_admin %}
+                                <div class="group-member-controls">
+                                    <form method="post" action="{{ url_for('aplikacia_skupina_clenovia', group_id=group.id) }}" class="group-inline-form">
+                                        <input type="hidden" name="member_action" value="set_role">
+                                        <input type="hidden" name="target_user_id" value="{{ member.user_id }}">
+                                        <select name="role" class="group-role-select">
+                                            <option value="admin" {% if member.role == 'admin' %}selected{% endif %}>Administrátor</option>
+                                            <option value="member" {% if member.role == 'member' %}selected{% endif %}>Člen</option>
+                                        </select>
+                                        <button class="btn" type="submit">Uložiť rolu</button>
+                                    </form>
+
+                                    <form method="post" action="{{ url_for('aplikacia_skupina_clenovia', group_id=group.id) }}" class="group-inline-form" onsubmit="return window.confirm('Naozaj odstrániť člena zo skupiny?');">
+                                        <input type="hidden" name="member_action" value="remove_member">
+                                        <input type="hidden" name="target_user_id" value="{{ member.user_id }}">
+                                        <button class="btn" type="submit">Odstrániť člena</button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Zatiaľ tu nie sú žiadni členovia.</p>
+            {% endif %}
+
+            {% if is_group_admin and group.je_sukromna %}
+                <h3 class="calendar-events-heading">Žiadosti o vstup</h3>
+                {% if pending_requests %}
+                    <div class="group-member-list">
+                        {% for pending in pending_requests %}
+                            <article class="group-member-item">
+                                <div class="group-member-profile">
+                                    <div class="avatar-wrap" aria-hidden="true">
+                                        {% if pending.photo_url %}
+                                            <img class="avatar-image" src="{{ pending.photo_url }}" alt="Profilová fotka {{ pending.full_name }}">
+                                        {% else %}
+                                            <div class="avatar-fallback"></div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="group-member-name">{{ pending.full_name }}</p>
+                                        <p class="group-member-meta">Žiadosť odoslaná: {{ pending.requested_at }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="group-member-controls">
+                                    <form method="post" action="{{ url_for('aplikacia_skupina_clenovia', group_id=group.id) }}" class="group-inline-form">
+                                        <input type="hidden" name="member_action" value="approve_request">
+                                        <input type="hidden" name="target_user_id" value="{{ pending.user_id }}">
+                                        <button class="btn" type="submit">Prijať</button>
+                                    </form>
+                                    <form method="post" action="{{ url_for('aplikacia_skupina_clenovia', group_id=group.id) }}" class="group-inline-form">
+                                        <input type="hidden" name="member_action" value="reject_request">
+                                        <input type="hidden" name="target_user_id" value="{{ pending.user_id }}">
+                                        <button class="btn" type="submit">Zamietnuť</button>
+                                    </form>
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>Žiadne čakajúce žiadosti.</p>
+                {% endif %}
+            {% endif %}
         </section>
 
         <section class="section-card group-tab-panel {% if active_detail_tab == 'subory' %}active{% endif %}" data-tab-panel="subory" {% if active_detail_tab != 'subory' %}hidden{% endif %}>

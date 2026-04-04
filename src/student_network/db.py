@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS group_memberships (
     group_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('member', 'pending')),
+    role TEXT NOT NULL DEFAULT 'member' CHECK (role IN ('admin', 'member')),
     requested_at TEXT NOT NULL,
     joined_at TEXT NOT NULL DEFAULT '',
     UNIQUE(group_id, user_id),
@@ -141,6 +142,7 @@ def init_db() -> None:
     database.executescript(SCHEMA)
     ensure_profile_photo_column(database)
     ensure_group_membership_joined_at_column(database)
+    ensure_group_membership_role_column(database)
     ensure_group_event_notification_schedule_columns(database)
     ensure_seed_groups(database)
     database.commit()
@@ -164,6 +166,58 @@ def ensure_group_membership_joined_at_column(database: sqlite3.Connection) -> No
         database.execute(
             "ALTER TABLE group_memberships ADD COLUMN joined_at TEXT NOT NULL DEFAULT ''"
         )
+
+
+def ensure_group_membership_role_column(database: sqlite3.Connection) -> None:
+    columns = database.execute("PRAGMA table_info(group_memberships)").fetchall()
+    existing_column_names = {column['name'] for column in columns}
+
+    if 'role' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE group_memberships ADD COLUMN role TEXT NOT NULL DEFAULT 'member'"
+        )
+
+    database.execute(
+        """
+        UPDATE group_memberships
+        SET role = 'member'
+        WHERE role IS NULL OR TRIM(role) = ''
+        """
+    )
+
+    group_rows = database.execute("SELECT id FROM groups_table").fetchall()
+    for group_row in group_rows:
+        group_id = int(group_row['id'])
+        admin_count_row = database.execute(
+            """
+            SELECT COUNT(*) AS cnt
+            FROM group_memberships
+            WHERE group_id = ? AND status = 'member' AND role = 'admin'
+            """,
+            (group_id,),
+        ).fetchone()
+
+        if admin_count_row is not None and int(admin_count_row['cnt']) > 0:
+            continue
+
+        first_member_row = database.execute(
+            """
+            SELECT id
+            FROM group_memberships
+            WHERE group_id = ? AND status = 'member'
+            ORDER BY
+                CASE WHEN joined_at != '' THEN joined_at ELSE requested_at END ASC,
+                id ASC
+            LIMIT 1
+            """,
+            (group_id,),
+        ).fetchone()
+
+        if first_member_row is not None:
+            database.execute(
+                "UPDATE group_memberships SET role = 'admin' WHERE id = ?",
+                (int(first_member_row['id']),),
+            )
 
 
 def ensure_group_event_notification_schedule_columns(database: sqlite3.Connection) -> None:

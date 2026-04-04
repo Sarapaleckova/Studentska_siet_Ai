@@ -20,6 +20,10 @@
     <input class="search-input" type="text" name="q" value="{{ search_query }}" placeholder="Hľadať skupiny podľa názvu..." aria-label="Hľadať skupiny podľa názvu">
 </form>
 
+<div class="actions groups-create-action">
+    <a class="btn-link" href="{{ url_for('aplikacia_skupiny_vytvorit') }}">Vytvoriť novú skupinu</a>
+</div>
+
 <section class="section-card groups-section">
     <h2 class="section-heading">Moje skupiny</h2>
     {% if member_groups %}
@@ -36,6 +40,9 @@
                     <div class="group-card-body">
                         <h3 class="group-card-title">{{ group.nazov }}</h3>
                         <p class="group-card-meta">{{ group.member_count }} členov{% if group.je_sukromna %} • Súkromná{% else %} • Verejná{% endif %}</p>
+                        {% if group.membership_role == 'admin' %}
+                            <p class="group-card-status">Vaša rola: Administrátor</p>
+                        {% endif %}
                     </div>
                 </a>
             {% endfor %}

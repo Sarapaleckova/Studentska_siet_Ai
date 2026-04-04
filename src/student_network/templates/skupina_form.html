@@ -1,0 +1,68 @@
+{% extends 'base_app.html' %}
+
+{% block title %}{{ form_title }}{% endblock %}
+
+{% block content %}
+<h1>{{ form_title }}</h1>
+{% if g.user %}
+<p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
+{% endif %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <p class="flash-message flash-{{ category }}">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<section class="section-card profile-card">
+    <form method="post" enctype="multipart/form-data" class="group-settings-form">
+        {% if group_photo_url %}
+            <div class="group-settings-photo-preview">
+                <img src="{{ group_photo_url }}" alt="Fotka skupiny" class="group-settings-photo-image">
+            </div>
+        {% endif %}
+
+        <div class="field">
+            <label for="nazov">Názov skupiny</label>
+            <input id="nazov" name="nazov" type="text" value="{{ values.nazov }}" maxlength="120" required>
+            <p class="form-error field-error" aria-live="polite">{{ errors.nazov if errors else '' }}</p>
+        </div>
+
+        <div class="field">
+            <label for="profilova_fotka">Profilová fotka skupiny</label>
+            <input id="profilova_fotka" name="profilova_fotka" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+            <p class="form-error field-error" aria-live="polite">{{ errors.profilova_fotka if errors else '' }}</p>
+        </div>
+
+        <div class="field">
+            <label for="popis">Popis skupiny</label>
+            <textarea id="popis" name="popis" rows="5" maxlength="2000">{{ values.popis }}</textarea>
+            <p class="form-error field-error" aria-live="polite">{{ errors.popis if errors else '' }}</p>
+        </div>
+
+        <fieldset class="field group-access-fieldset">
+            <legend>Prístupnosť skupiny</legend>
+            <label class="group-access-option">
+                <input type="radio" name="pristupnost" value="public" {% if values.pristupnost != 'private' %}checked{% endif %}>
+                Verejná
+            </label>
+            <label class="group-access-option">
+                <input type="radio" name="pristupnost" value="private" {% if values.pristupnost == 'private' %}checked{% endif %}>
+                Súkromná
+            </label>
+            <p class="form-error field-error" aria-live="polite">{{ errors.pristupnost if errors else '' }}</p>
+        </fieldset>
+
+        <div class="actions profile-actions">
+            <button class="btn" type="submit">{{ submit_label }}</button>
+            {% if is_edit %}
+                <a class="btn-link" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia') }}">Späť</a>
+            {% else %}
+                <a class="btn-link" href="{{ url_for('aplikacia_skupiny') }}">Zrušiť</a>
+            {% endif %}
+        </div>
+    </form>
+</section>
+{% endblock %}
