@@ -12,6 +12,8 @@
 {% endwith %}
 
 <section class="post-detail-container">
+    <a class="post-back-link" href="{{ url_for('aplikacia_domov') }}" aria-label="Späť na príspevky">←</a>
+
     <div class="post-detail-preview">
         {% if post.nahladovy_obrazok_url %}
             <img class="post-detail-large-image" src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}">
@@ -30,7 +32,6 @@
         </div>
 
         <div class="post-detail-toolbar">
-            <button class="btn btn-comments-toggle" type="button" data-comments-modal-open>Komentáre</button>
             <div class="post-rating-summary" aria-label="Priemerné hodnotenie príspevku">
                 <div class="rating-stars rating-stars-summary" aria-hidden="true">
                     {% for star_state in post.rating_stars %}
@@ -41,21 +42,7 @@
             </div>
         </div>
 
-        {% if not is_post_owner %}
-            <form method="post" class="rating-form" id="hodnotenie">
-                <input type="hidden" name="action_type" value="rating">
-                <p class="rating-form-label">Tvoje hodnotenie:</p>
-                <div class="rating-stars" role="radiogroup" aria-label="Hodnotenie príspevku">
-                    {% for star in [1, 2, 3, 4, 5] %}
-                        <label class="rating-star-option">
-                            <input type="radio" name="rating" value="{{ star }}" {% if current_user_rating == star %}checked{% endif %}>
-                            <span>{{ star }}★</span>
-                        </label>
-                    {% endfor %}
-                </div>
-                <button class="btn rating-submit" type="submit">Uložiť hodnotenie</button>
-            </form>
-        {% else %}
+        {% if is_post_owner %}
             <p class="post-owner-note">Ako autor nemôžeš hodnotiť vlastný príspevok.</p>
         {% endif %}
 
@@ -64,15 +51,48 @@
         </div>
 
         <div class="post-detail-actions">
-            <a class="btn btn-back" href="{{ url_for('aplikacia_domov') }}">Odísť</a>
+            <div class="post-detail-actions-left">
+                {% if not is_post_owner %}
+                    <button class="btn btn-small" type="button" data-rating-modal-open>Ohodnotiť</button>
+                {% endif %}
+                <button class="btn btn-small" type="button" data-comments-modal-open>Komentáre</button>
+            </div>
             {% if post.subor_url %}
-                <a class="btn btn-download" href="{{ post.subor_url }}" download="{{ post.subor_povodny_nazov }}">
-                    Stiahnuť
-                </a>
+                <a class="btn btn-download post-download-button" href="{{ post.subor_url }}" download="{{ post.subor_povodny_nazov }}">Stiahnuť</a>
             {% endif %}
         </div>
     </div>
 </section>
+
+{% if not is_post_owner %}
+<section class="rating-modal" id="rating-modal" aria-hidden="true">
+    <div class="comments-modal-backdrop" data-rating-modal-close></div>
+    <div class="comments-modal-panel rating-modal-panel" role="dialog" aria-modal="true" aria-labelledby="rating-modal-title">
+        <button class="comments-modal-close" type="button" aria-label="Zavrieť hodnotenie" data-rating-modal-close>×</button>
+
+        <div class="comments-modal-header">
+            <h2 id="rating-modal-title">Ohodnotiť príspevok</h2>
+            <p>Vyber počet hviezdičiek a potvrď hodnotenie.</p>
+        </div>
+
+        <form method="post" class="rating-form rating-modal-form" id="hodnotenie">
+            <input type="hidden" name="action_type" value="rating">
+            <p class="rating-form-label">Tvoje hodnotenie:</p>
+            <div class="rating-stars rating-stars-modal" role="radiogroup" aria-label="Hodnotenie príspevku">
+                {% for star in [1, 2, 3, 4, 5] %}
+                    <label class="rating-star-option">
+                        <input type="radio" name="rating" value="{{ star }}" {% if current_user_rating == star %}checked{% endif %}>
+                        <span>{{ star }}★</span>
+                    </label>
+                {% endfor %}
+            </div>
+            <div class="actions rating-modal-actions">
+                <button class="btn rating-submit" type="submit">Uložiť hodnotenie</button>
+            </div>
+        </form>
+    </div>
+</section>
+{% endif %}
 
 <section class="comments-modal{% if comments_modal_open %} is-open{% endif %}" id="comments-modal" aria-hidden="{{ 'false' if comments_modal_open else 'true' }}">
     <div class="comments-modal-backdrop" data-comments-modal-close></div>
@@ -152,8 +172,11 @@
 <script>
 (function () {
     const modal = document.getElementById('comments-modal');
+    const ratingModal = document.getElementById('rating-modal');
     const openButtons = document.querySelectorAll('[data-comments-modal-open]');
+    const openRatingButtons = document.querySelectorAll('[data-rating-modal-open]');
     const closeTargets = modal ? modal.querySelectorAll('[data-comments-modal-close]') : [];
+    const ratingCloseTargets = ratingModal ? ratingModal.querySelectorAll('[data-rating-modal-close]') : [];
 
     if (!modal) {
         return;
@@ -174,6 +197,26 @@
         }
     };
 
+    const openRatingModal = () => {
+        if (!ratingModal) {
+            return;
+        }
+
+        ratingModal.classList.add('is-open');
+        ratingModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    };
+
+    const closeRatingModal = () => {
+        if (!ratingModal) {
+            return;
+        }
+
+        ratingModal.classList.remove('is-open');
+        ratingModal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    };
+
     openButtons.forEach((button) => {
         button.addEventListener('click', () => {
             openModal();
@@ -181,8 +224,16 @@
         });
     });
 
+    openRatingButtons.forEach((button) => {
+        button.addEventListener('click', openRatingModal);
+    });
+
     closeTargets.forEach((target) => {
         target.addEventListener('click', closeModal);
+    });
+
+    ratingCloseTargets.forEach((target) => {
+        target.addEventListener('click', closeRatingModal);
     });
 
     modal.addEventListener('click', (event) => {
@@ -191,15 +242,27 @@
         }
     });
 
+    if (ratingModal) {
+        ratingModal.addEventListener('click', (event) => {
+            if (event.target === ratingModal) {
+                closeRatingModal();
+            }
+        });
+    }
+
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && modal.classList.contains('is-open')) {
             closeModal();
+        }
+        if (event.key === 'Escape' && ratingModal && ratingModal.classList.contains('is-open')) {
+            closeRatingModal();
         }
     });
 
     if (window.location.hash === '#komentare' || {{ 'true' if comments_modal_open else 'false' }}) {
         openModal();
     }
+
 })();
 </script>
 {% endblock %}
