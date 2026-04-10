@@ -13,11 +13,13 @@ def create_app() -> Flask:
     app.config['DATABASE'] = str(Path(app.root_path) / 'data' / 'student_network.db')
     app.config['PROFILE_PHOTO_UPLOAD_DIR'] = str(Path(app.root_path) / 'static' / 'uploads' / 'profile_photos')
     app.config['GROUP_PHOTO_UPLOAD_DIR'] = str(Path(app.root_path) / 'static' / 'uploads' / 'group_photos')
+    app.config['GROUP_FILE_UPLOAD_DIR'] = str(Path(app.root_path) / 'static' / 'uploads' / 'group_files')
     app.config['POST_IMAGE_UPLOAD_DIR'] = str(Path(app.root_path) / 'static' / 'uploads' / 'post_images')
     app.config['POST_FILE_UPLOAD_DIR'] = str(Path(app.root_path) / 'static' / 'uploads' / 'post_files')
 
     Path(app.config['PROFILE_PHOTO_UPLOAD_DIR']).mkdir(parents=True, exist_ok=True)
     Path(app.config['GROUP_PHOTO_UPLOAD_DIR']).mkdir(parents=True, exist_ok=True)
+    Path(app.config['GROUP_FILE_UPLOAD_DIR']).mkdir(parents=True, exist_ok=True)
     Path(app.config['POST_IMAGE_UPLOAD_DIR']).mkdir(parents=True, exist_ok=True)
     Path(app.config['POST_FILE_UPLOAD_DIR']).mkdir(parents=True, exist_ok=True)
 

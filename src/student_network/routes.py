@@ -3,13 +3,14 @@
 from calendar import monthrange
 from datetime import date, datetime
 from functools import wraps
+import mimetypes
 from pathlib import Path
 import re
 import sqlite3
 import unicodedata
 from uuid import uuid4
 
-from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from flask import Flask, abort, flash, g, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
 
 from student_network.file_types import (
@@ -28,6 +29,7 @@ from student_network.repositories.group_events import (
     get_group_notifications,
     update_group_event,
 )
+from student_network.repositories.group_files import create_group_file, get_group_file_by_id, get_group_files
 from student_network.repositories.groups import (
     approve_group_request,
     bulk_update_member_roles,
@@ -58,6 +60,8 @@ ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 ALLOWED_GROUP_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 APP_BASE_PATH = '/studentska-siet'
 GROUP_TABS = {'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'}
+ALLOWED_GROUP_SHARED_FILE_EXTENSIONS = ALLOWED_POST_FILE_EXTENSIONS | ALLOWED_POST_IMAGE_EXTENSIONS
+GROUP_FILE_ACCEPT_VALUE = ','.join(sorted(ALLOWED_GROUP_SHARED_FILE_EXTENSIONS))
 
 
 def _post_file_type_from_name(file_name: str) -> str:
@@ -595,6 +599,18 @@ def register_routes(app: Flask) -> None:
             for row in notification_rows
         ]
 
+        group_file_rows = get_group_files(group_id=group_id)
+        group_files = [
+            {
+                'id': row['id'],
+                'original_nazov': row['original_nazov'],
+                'typ_suboru': row['typ_suboru'] or _post_file_type_from_name(row['original_nazov']),
+                'author': f"{row['author_meno']} {row['author_priezvisko']}",
+                'uploaded_at': _format_datetime_eu(row['uploaded_at']),
+            }
+            for row in group_file_rows
+        ]
+
         month_title = datetime(year_value, month_number, 1).strftime('%B %Y')
 
         return render_template(
@@ -610,6 +626,8 @@ def register_routes(app: Flask) -> None:
             calendar_weeks=calendar_weeks,
             month_events=month_events,
             notifications=notifications,
+            group_files=group_files,
+            group_file_accept=GROUP_FILE_ACCEPT_VALUE,
             week_days=['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'],
             members=members,
             pending_requests=pending_requests,
@@ -934,6 +952,96 @@ def register_routes(app: Flask) -> None:
 
         flash('Neplatná akcia udalosti.', 'error')
         return _redirect_calendar(redirect_month)
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/subory', methods=['POST'])
+    @login_required
+    def aplikacia_skupina_subory_nahrat(group_id: int) -> str:
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            flash('Nahrávanie súborov je dostupné len pre členov skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        uploaded_file = request.files.get('subor')
+        if not uploaded_file or not uploaded_file.filename:
+            flash('Vyberte súbor na nahratie.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='zdielat'))
+
+        original_name = secure_filename(uploaded_file.filename)
+        extension = Path(original_name).suffix.lower()
+        if extension not in ALLOWED_GROUP_SHARED_FILE_EXTENSIONS:
+            flash('Nepodporovaný typ súboru.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='zdielat'))
+
+        stored_name, original_name = _save_uploaded_file(
+            uploaded_file,
+            Path(app.config['GROUP_FILE_UPLOAD_DIR']),
+            int(g.user['id']),
+        )
+        file_type = extension if extension else _post_file_type_from_name(original_name)
+
+        create_group_file(
+            group_id=group_id,
+            uploaded_by_user_id=int(g.user['id']),
+            stored_subor=stored_name,
+            original_nazov=original_name,
+            typ_suboru=file_type,
+        )
+        flash('Súbor bol nahratý do skupiny.', 'success')
+        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory'))
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/subory/<int:group_file_id>/nahlad')
+    @login_required
+    def aplikacia_skupina_subor_nahlad(group_id: int, group_file_id: int):
+        group = get_group_by_id(group_id)
+        if group is None:
+            abort(404)
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            abort(403)
+
+        group_file = get_group_file_by_id(group_id=group_id, group_file_id=group_file_id)
+        if group_file is None:
+            abort(404)
+
+        mimetype_value = mimetypes.guess_type(group_file['original_nazov'])[0]
+        if not mimetype_value:
+            mimetype_value = 'application/octet-stream'
+
+        return send_from_directory(
+            app.config['GROUP_FILE_UPLOAD_DIR'],
+            group_file['stored_subor'],
+            as_attachment=False,
+            download_name=group_file['original_nazov'],
+            mimetype=mimetype_value,
+        )
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/subory/<int:group_file_id>/stiahnut')
+    @login_required
+    def aplikacia_skupina_subor_stiahnut(group_id: int, group_file_id: int):
+        group = get_group_by_id(group_id)
+        if group is None:
+            abort(404)
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            abort(403)
+
+        group_file = get_group_file_by_id(group_id=group_id, group_file_id=group_file_id)
+        if group_file is None:
+            abort(404)
+
+        return send_from_directory(
+            app.config['GROUP_FILE_UPLOAD_DIR'],
+            group_file['stored_subor'],
+            as_attachment=True,
+            download_name=group_file['original_nazov'],
+        )
 
     @app.route(f'{APP_BASE_PATH}/hladat')
     @login_required

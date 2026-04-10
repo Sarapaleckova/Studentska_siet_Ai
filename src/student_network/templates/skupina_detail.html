@@ -32,6 +32,16 @@
             <h2>Zdieľať</h2>
             <p class="group-detail-description" id="group-description">{{ group.popis }}</p>
             <p class="group-tab-note">V tejto sekcii môžeš zdieľať príspevky, oznamy a študijné materiály pre členov skupiny.</p>
+
+            <form class="group-upload-form" method="post" action="{{ url_for('aplikacia_skupina_subory_nahrat', group_id=group.id) }}" enctype="multipart/form-data">
+                <div class="field">
+                    <label for="group-share-file">Nahrať materiál</label>
+                    <input id="group-share-file" name="subor" type="file" accept="{{ group_file_accept }}" required>
+                </div>
+                <div class="actions">
+                    <button class="btn" type="submit">Nahrať súbor</button>
+                </div>
+            </form>
         </section>
 
         <section class="section-card group-tab-panel {% if active_detail_tab == 'notifikacie' %}active{% endif %}" data-tab-panel="notifikacie" {% if active_detail_tab != 'notifikacie' %}hidden{% endif %}>
@@ -223,8 +233,23 @@
 
         <section class="section-card group-tab-panel {% if active_detail_tab == 'subory' %}active{% endif %}" data-tab-panel="subory" {% if active_detail_tab != 'subory' %}hidden{% endif %}>
             <h2>Súbory</h2>
-            <p>Pre túto skupinu zatiaľ nie sú nahraté žiadne skupinové súbory.</p>
-            <p class="group-tab-note">Sekcia je pripravená na napojenie uploadov skupinových materiálov.</p>
+            {% if group_files %}
+                <div class="group-files-list" role="list">
+                    {% for file_item in group_files %}
+                        <article class="group-file-item" role="listitem">
+                            <h3 class="group-file-name">
+                                <a href="{{ url_for('aplikacia_skupina_subor_nahlad', group_id=group.id, group_file_id=file_item.id) }}" target="_blank" rel="noopener">{{ file_item.original_nazov }}</a>
+                            </h3>
+                            <p class="group-file-meta">Typ: {{ file_item.typ_suboru }}</p>
+                            <p class="group-file-meta">Autor: {{ file_item.author }}</p>
+                            <p class="group-file-meta">Nahrané: {{ file_item.uploaded_at }}</p>
+                            <a class="btn-link" href="{{ url_for('aplikacia_skupina_subor_stiahnut', group_id=group.id, group_file_id=file_item.id) }}">Stiahnuť</a>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>Pre túto skupinu zatiaľ nie sú nahraté žiadne skupinové súbory.</p>
+            {% endif %}
         </section>
     </main>
 

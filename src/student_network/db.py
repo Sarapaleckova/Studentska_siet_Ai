@@ -109,6 +109,18 @@ CREATE TABLE IF NOT EXISTS group_event_notifications (
     FOREIGN KEY (event_id) REFERENCES group_events(id) ON DELETE SET NULL,
     FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS group_files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    uploaded_by_user_id INTEGER NOT NULL,
+    stored_subor TEXT NOT NULL,
+    original_nazov TEXT NOT NULL,
+    typ_suboru TEXT NOT NULL DEFAULT '',
+    uploaded_at TEXT NOT NULL,
+    FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 
