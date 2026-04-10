@@ -1109,22 +1109,38 @@ body.modal-open {
     background: #ffffff;
 }
 
+.group-file-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
 .group-file-name {
-    margin: 0 0 8px 0;
+    margin: 0;
     font-size: 1rem;
+    min-width: 0;
 }
 
 .group-file-name a {
     color: #0f58c7;
     text-decoration: none;
+    overflow-wrap: anywhere;
 }
 
 .group-file-name a:hover {
     text-decoration: underline;
 }
 
-.group-file-meta {
-    margin: 0 0 6px 0;
+.group-file-download {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 108px;
+    padding: 8px 12px;
+}
+
+.group-file-meta-line {
+    margin: 8px 0 0 0;
     color: #2d426e;
     font-size: 0.9rem;
 }

@@ -237,13 +237,13 @@
                 <div class="group-files-list" role="list">
                     {% for file_item in group_files %}
                         <article class="group-file-item" role="listitem">
-                            <h3 class="group-file-name">
-                                <a href="{{ url_for('aplikacia_skupina_subor_nahlad', group_id=group.id, group_file_id=file_item.id) }}" target="_blank" rel="noopener">{{ file_item.original_nazov }}</a>
-                            </h3>
-                            <p class="group-file-meta">Typ: {{ file_item.typ_suboru }}</p>
-                            <p class="group-file-meta">Autor: {{ file_item.author }}</p>
-                            <p class="group-file-meta">Nahrané: {{ file_item.uploaded_at }}</p>
-                            <a class="btn-link" href="{{ url_for('aplikacia_skupina_subor_stiahnut', group_id=group.id, group_file_id=file_item.id) }}">Stiahnuť</a>
+                            <div class="group-file-top-row">
+                                <h3 class="group-file-name">
+                                    <a href="{{ url_for('aplikacia_skupina_subor_nahlad', group_id=group.id, group_file_id=file_item.id) }}" target="_blank" rel="noopener">{{ file_item.original_nazov }}</a>
+                                </h3>
+                                <a class="btn-link group-file-download" href="{{ url_for('aplikacia_skupina_subor_stiahnut', group_id=group.id, group_file_id=file_item.id) }}">Stiahnuť</a>
+                            </div>
+                            <p class="group-file-meta-line">Typ: {{ file_item.typ_suboru }} | Autor: {{ file_item.author }} | Nahrané: {{ file_item.uploaded_at }}</p>
                         </article>
                     {% endfor %}
                 </div>
