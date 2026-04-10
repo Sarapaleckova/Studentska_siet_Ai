@@ -1050,7 +1050,10 @@ body.modal-open {
 }
 
 .group-back-link {
-    align-self: flex-start;
+    position: fixed;
+    top: 74px;
+    left: max(12px, calc((100vw - 680px) / 2 - 56px));
+    z-index: 92;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1059,9 +1062,15 @@ body.modal-open {
     border-radius: 999px;
     background: #ffffff;
     color: #102246;
+    border: 1px solid #d8dfef;
+    box-shadow: 0 6px 16px rgba(10, 20, 44, 0.16);
     text-decoration: none;
     font-size: 1.35rem;
     font-weight: 700;
+}
+
+.group-back-link:hover {
+    background: #f1f5ff;
 }
 
 .group-detail-title-wrap h1 {
@@ -1641,6 +1650,13 @@ body.modal-open {
 @media (max-width: 560px) {
     .group-card-image-wrap {
         width: 90px;
+    }
+
+    .group-back-link {
+        top: 70px;
+        left: 10px;
+        width: 36px;
+        height: 36px;
     }
 
     .group-modal-image-wrap {
