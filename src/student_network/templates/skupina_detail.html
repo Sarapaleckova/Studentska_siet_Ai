@@ -36,7 +36,13 @@
             <form class="group-upload-form" method="post" action="{{ url_for('aplikacia_skupina_subory_nahrat', group_id=group.id) }}" enctype="multipart/form-data">
                 <div class="field">
                     <label for="group-share-file">Nahrať materiál</label>
-                    <input id="group-share-file" name="subor" type="file" accept="{{ group_file_accept }}" required>
+                    <div class="drop-zone group-file-drop-zone" id="group-file-drop-zone" tabindex="0">
+                        <p class="drop-zone-title">Potiahni súbor sem</p>
+                        <p class="drop-zone-types">Alebo použi tlačidlo na výber súboru.</p>
+                        <p class="drop-zone-selected" id="group-file-selected-name">Žiadny súbor nebol vybraný.</p>
+                        <button class="btn group-file-picker-button" type="button" id="group-file-picker-button">Vybrať súbor</button>
+                    </div>
+                    <input class="hidden-file-input" id="group-share-file" name="subor" type="file" accept="{{ group_file_accept }}" required>
                 </div>
                 <div class="actions">
                     <button class="btn" type="submit">Nahrať súbor</button>
@@ -325,6 +331,10 @@
     const openEventButtons = document.querySelectorAll('[data-open-event-modal="1"]');
     const closeEventButtons = document.querySelectorAll('[data-close-event-modal="1"]');
     const flashMessages = document.querySelectorAll('[data-group-flash="1"]');
+    const shareFileInput = document.getElementById('group-share-file');
+    const shareDropZone = document.getElementById('group-file-drop-zone');
+    const shareFileName = document.getElementById('group-file-selected-name');
+    const sharePickerButton = document.getElementById('group-file-picker-button');
 
     const toDisplayDate = function (isoDate) {
         if (!isoDate) {
@@ -414,6 +424,56 @@
             button.addEventListener('click', function () {
                 setActiveTab(button.dataset.tabTarget, true);
             });
+        });
+    }
+
+    if (shareFileInput && shareDropZone && shareFileName && sharePickerButton) {
+        const assignSharedFile = function (file) {
+            if (!file) {
+                return;
+            }
+
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            shareFileInput.files = transfer.files;
+            shareFileName.textContent = file.name;
+        };
+
+        const openPicker = function () {
+            shareFileInput.click();
+        };
+
+        sharePickerButton.addEventListener('click', openPicker);
+        shareDropZone.addEventListener('click', openPicker);
+
+        shareDropZone.addEventListener('keydown', function (event) {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                openPicker();
+            }
+        });
+
+        shareDropZone.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            shareDropZone.classList.add('drop-zone-active');
+        });
+
+        shareDropZone.addEventListener('dragleave', function () {
+            shareDropZone.classList.remove('drop-zone-active');
+        });
+
+        shareDropZone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            shareDropZone.classList.remove('drop-zone-active');
+            const file = event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null;
+            assignSharedFile(file);
+        });
+
+        shareFileInput.addEventListener('change', function () {
+            const file = shareFileInput.files && shareFileInput.files[0] ? shareFileInput.files[0] : null;
+            if (file) {
+                shareFileName.textContent = file.name;
+            }
         });
     }
 
