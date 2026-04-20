@@ -900,6 +900,23 @@ textarea {
     width: min(100%, 520px);
 }
 
+.leave-modal-panel {
+    width: min(100%, 420px);
+    text-align: center;
+}
+
+.leave-modal-panel h2 {
+    margin-top: 0;
+    margin-bottom: 14px;
+    color: #0b1f4d;
+}
+
+.leave-confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
 .rating-modal-form {
     gap: 12px;
 }
