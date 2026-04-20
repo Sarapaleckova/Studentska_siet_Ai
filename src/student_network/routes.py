@@ -50,9 +50,9 @@ from student_network.repositories.groups import (
     update_member_role,
 )
 from student_network.repositories.profiles import get_profile_by_user_id, save_profile
-from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id
+from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id, search_posts
 from student_network.repositories.ratings import get_user_post_rating, upsert_post_rating
-from student_network.repositories.users import get_user_by_id, update_user_name
+from student_network.repositories.users import get_user_by_id, search_users_by_name, update_user_name
 from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
 
@@ -1046,13 +1046,65 @@ def register_routes(app: Flask) -> None:
     @app.route(f'{APP_BASE_PATH}/hladat')
     @login_required
     def aplikacia_hladat() -> str:
+        query = request.args.get('q', '').strip()
+        selected_filters = request.args.getlist('typ')
+        valid_filters = {'profiles', 'groups', 'posts'}
+        selected_filter_set = {item for item in selected_filters if item in valid_filters}
+        if not selected_filter_set:
+            selected_filter_set = set(valid_filters)
+
+        members: list[dict] = []
+        groups: list[dict] = []
+        posts: list[dict] = []
+
+        if query:
+            if 'profiles' in selected_filter_set:
+                member_rows = search_users_by_name(query)
+                members = [
+                    {
+                        'id': row['id'],
+                        'full_name': f"{row['meno']} {row['priezvisko']}",
+                        'email': row['email'],
+                        'photo_url': url_for('static', filename=row['profilova_fotka']) if row['profilova_fotka'] else None,
+                    }
+                    for row in member_rows
+                ]
+
+            if 'groups' in selected_filter_set:
+                group_rows = get_groups_for_user(int(g.user['id']), query)
+                groups = [
+                    {
+                        'id': row['id'],
+                        'nazov': row['nazov'],
+                        'popis': row['popis'],
+                        'obrazok_url': _group_image_src(row['obrazok_url']),
+                        'member_count': int(row['member_count'] or 0),
+                        'membership_status': row['membership_status'] or '',
+                    }
+                    for row in group_rows
+                ]
+
+            if 'posts' in selected_filter_set:
+                post_rows = search_posts(query)
+                posts = [
+                    {
+                        'id': row['id'],
+                        'nazov': row['nazov'],
+                        'popis': row['popis'],
+                        'author': f"{row['author_meno']} {row['author_priezvisko']}",
+                        'post_slug': _slugify(row['nazov']),
+                    }
+                    for row in post_rows
+                ]
+
         return render_template(
-            'app_main.html',
+            'hladat.html',
             active_tab='hladat',
-            section_title='Hľadať',
-            section_content='Stránka na vyhľadávanie',
-            show_search=True,
-            search_placeholder='Hľadať...'
+            query=query,
+            selected_filters=selected_filter_set,
+            members=members,
+            groups=groups,
+            posts=posts,
         )
 
     @app.route(f'{APP_BASE_PATH}/pridat')

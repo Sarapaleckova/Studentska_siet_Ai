@@ -1315,6 +1315,43 @@ body.modal-open {
     margin-bottom: 8px;
 }
 
+.search-card {
+    margin-bottom: 12px;
+}
+
+.search-form .actions {
+    margin-top: 10px;
+}
+
+.search-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.search-filter-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #1a2540;
+    font-weight: 600;
+}
+
+.search-results-card {
+    margin-bottom: 12px;
+}
+
+.search-results-card h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #0b1f4d;
+}
+
+.search-post-item {
+    text-decoration: none;
+    color: inherit;
+}
+
 .group-member-list {
     display: flex;
     flex-direction: column;

@@ -1,0 +1,138 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Hľadať{% endblock %}
+
+{% block content %}
+<h1>Hľadať</h1>
+{% if g.user %}
+<p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
+{% endif %}
+
+<section class="section-card search-card">
+    <form method="get" action="{{ url_for('aplikacia_hladat') }}" class="search-form">
+        <div class="search-wrap">
+            <input class="search-input" name="q" type="text" value="{{ query }}" placeholder="Hľadať skupiny, členov alebo príspevky...">
+        </div>
+
+        <div class="search-filter-row" role="group" aria-label="Filtre vyhľadávania">
+            <label class="search-filter-item">
+                <input type="checkbox" name="typ" value="profiles" {% if 'profiles' in selected_filters %}checked{% endif %}>
+                <span>Profil (členovia)</span>
+            </label>
+            <label class="search-filter-item">
+                <input type="checkbox" name="typ" value="groups" {% if 'groups' in selected_filters %}checked{% endif %}>
+                <span>Skupiny</span>
+            </label>
+            <label class="search-filter-item">
+                <input type="checkbox" name="typ" value="posts" {% if 'posts' in selected_filters %}checked{% endif %}>
+                <span>Príspevky</span>
+            </label>
+        </div>
+
+        <div class="actions">
+            <button class="btn" type="submit">Vyhľadať</button>
+        </div>
+    </form>
+</section>
+
+{% if query %}
+    {% if 'profiles' in selected_filters %}
+    <section class="section-card search-results-card">
+        <h2>Profil (členovia)</h2>
+        {% if members %}
+            <div class="group-member-list">
+                {% for member in members %}
+                    <article class="group-member-item">
+                        <div class="group-member-profile">
+                            <div class="avatar-wrap" aria-hidden="true">
+                                {% if member.photo_url %}
+                                    <img class="avatar-image" src="{{ member.photo_url }}" alt="Profilová fotka {{ member.full_name }}">
+                                {% else %}
+                                    <div class="avatar-fallback"></div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <p class="group-member-name">{{ member.full_name }}</p>
+                                <p class="group-member-meta">{{ member.email }}</p>
+                            </div>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Neboli nájdení žiadni členovia.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if 'groups' in selected_filters %}
+    <section class="section-card search-results-card">
+        <h2>Skupiny</h2>
+        {% if groups %}
+            <div class="group-member-list">
+                {% for group in groups %}
+                    {% if group.membership_status == 'member' %}
+                        <a class="group-card member-group-card" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='zdielat') }}">
+                            <div class="group-card-image-wrap">
+                                {% if group.obrazok_url %}
+                                    <img class="group-card-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
+                                {% else %}
+                                    <div class="group-card-image group-card-image-placeholder" aria-hidden="true"></div>
+                                {% endif %}
+                            </div>
+                            <div class="group-card-body">
+                                <h3 class="group-card-title">{{ group.nazov }}</h3>
+                                <p class="group-card-meta">{{ group.member_count }} členov</p>
+                                <p class="group-card-status">{{ group.popis }}</p>
+                            </div>
+                        </a>
+                    {% else %}
+                        <a class="group-card member-group-card" href="{{ url_for('aplikacia_skupiny', q=query) }}">
+                            <div class="group-card-image-wrap">
+                                {% if group.obrazok_url %}
+                                    <img class="group-card-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">
+                                {% else %}
+                                    <div class="group-card-image group-card-image-placeholder" aria-hidden="true"></div>
+                                {% endif %}
+                            </div>
+                            <div class="group-card-body">
+                                <h3 class="group-card-title">{{ group.nazov }}</h3>
+                                <p class="group-card-meta">{{ group.member_count }} členov</p>
+                                <p class="group-card-status">Skupina je dostupná v sekcii Skupiny.</p>
+                            </div>
+                        </a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Neboli nájdené žiadne skupiny.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+
+    {% if 'posts' in selected_filters %}
+    <section class="section-card search-results-card">
+        <h2>Príspevky</h2>
+        {% if posts %}
+            <div class="group-member-list">
+                {% for post in posts %}
+                    <a class="group-member-item search-post-item" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug) }}">
+                        <p class="group-member-name">{{ post.nazov }}</p>
+                        <p class="group-member-meta">Autor: {{ post.author }}</p>
+                        {% if post.popis %}
+                            <p class="group-tab-note">{{ post.popis }}</p>
+                        {% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>Neboli nájdené žiadne príspevky.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+{% else %}
+<section class="section-card search-results-card">
+    <p>Zadajte výraz a vyberte, ktoré kategórie chcete prehľadať.</p>
+</section>
+{% endif %}
+{% endblock %}

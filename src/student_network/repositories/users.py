@@ -45,3 +45,27 @@ def update_user_name(user_id: int, meno: str, priezvisko: str) -> None:
         (meno, priezvisko, user_id),
     )
     database.commit()
+
+
+def search_users_by_name(search_query: str) -> list[Row]:
+    database = get_db()
+    search_value = f"%{search_query.strip().lower()}%"
+    rows = database.execute(
+        """
+        SELECT
+            u.id,
+            u.meno,
+            u.priezvisko,
+            u.email,
+            up.profilova_fotka
+        FROM users u
+        LEFT JOIN user_profiles up ON up.user_id = u.id
+        WHERE
+            LOWER(u.meno) LIKE ?
+            OR LOWER(u.priezvisko) LIKE ?
+            OR LOWER(u.meno || ' ' || u.priezvisko) LIKE ?
+        ORDER BY u.priezvisko COLLATE NOCASE ASC, u.meno COLLATE NOCASE ASC
+        """,
+        (search_value, search_value, search_value),
+    ).fetchall()
+    return list(rows)

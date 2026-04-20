@@ -124,3 +124,27 @@ def get_posts_by_author_id(author_id: int) -> list[Row]:
         (author_id,),
     ).fetchall()
     return list(rows)
+
+
+def search_posts(search_query: str) -> list[Row]:
+    database = get_db()
+    search_value = f"%{search_query.strip().lower()}%"
+    rows = database.execute(
+        """
+        SELECT
+            p.id,
+            p.nazov,
+            p.popis,
+            p.nahladovy_obrazok,
+            p.subor_povodny_nazov,
+            p.datum_vytvorenia,
+            u.meno AS author_meno,
+            u.priezvisko AS author_priezvisko
+        FROM posts p
+        JOIN users u ON u.id = p.author_id
+        WHERE LOWER(p.nazov) LIKE ? OR LOWER(p.popis) LIKE ?
+        ORDER BY p.id DESC
+        """,
+        (search_value, search_value),
+    ).fetchall()
+    return list(rows)
