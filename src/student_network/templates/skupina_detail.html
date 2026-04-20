@@ -406,9 +406,11 @@
             panel.hidden = !shouldShow;
         });
 
-        flashMessages.forEach(function (message) {
-            message.style.display = 'none';
-        });
+        if (updateUrl) {
+            flashMessages.forEach(function (message) {
+                message.style.display = 'none';
+            });
+        }
 
         if (updateUrl) {
             const params = new URLSearchParams(window.location.search);

@@ -643,7 +643,7 @@ def register_routes(app: Flask) -> None:
             return redirect(url_for('aplikacia_skupiny'))
 
         if not is_group_admin(group_id=group_id, user_id=int(g.user['id'])):
-            flash('Nastavenia môže meniť len administrátor skupiny.', 'error')
+            flash('Používateľ nemá oprávnenie na úpravu nastavení skupiny.', 'error')
             return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia'))
 
         errors: dict[str, str] = {}
