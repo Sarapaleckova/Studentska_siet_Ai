@@ -1382,12 +1382,67 @@ def register_routes(app: Flask) -> None:
         return render_template(
             'profil.html',
             active_tab='profil',
-            user=g.user,
+            profile_user=g.user,
             profile_values=profile_values,
             profile_photo_url=profile_photo_url,
             values=values,
             errors=errors,
             edit_mode=edit_mode,
+            is_public_view=False,
+            user_posts=user_posts,
+            user_groups=user_groups,
+        )
+
+    @app.route(f'{APP_BASE_PATH}/profil/<int:user_id>')
+    @login_required
+    def aplikacia_profil_verejny(user_id: int) -> str:
+        if int(g.user['id']) == user_id:
+            return redirect(url_for('aplikacia_profil'))
+
+        viewed_user = get_user_by_id(user_id)
+        if viewed_user is None:
+            flash('Používateľ sa nenašiel.', 'error')
+            return redirect(url_for('aplikacia_hladat'))
+
+        profile = get_profile_by_user_id(user_id)
+        profile_values = profile_values_from_row(profile)
+
+        user_posts_rows = get_posts_by_author_id(user_id)
+        user_groups_rows = get_member_groups_for_user(user_id)
+
+        user_posts = [
+            {
+                'id': row['id'],
+                'nazov': row['nazov'],
+                'post_slug': _slugify(row['nazov']),
+                'datum_vytvorenia': _format_datetime_eu(row['datum_vytvorenia']),
+            }
+            for row in user_posts_rows
+        ]
+        user_groups = [
+            {
+                'id': row['id'],
+                'nazov': row['nazov'],
+                'obrazok_url': _group_image_src(row['obrazok_url']),
+                'membership_role': row['membership_role'],
+                'member_count': int(row['member_count'] or 0),
+            }
+            for row in user_groups_rows
+        ]
+
+        profile_photo_path = profile_values['profilova_fotka']
+        profile_photo_url = url_for('static', filename=profile_photo_path) if profile_photo_path else None
+
+        return render_template(
+            'profil.html',
+            active_tab='hladat',
+            profile_user=viewed_user,
+            profile_values=profile_values,
+            profile_photo_url=profile_photo_url,
+            values={},
+            errors={},
+            edit_mode=False,
+            is_public_view=True,
             user_posts=user_posts,
             user_groups=user_groups,
         )

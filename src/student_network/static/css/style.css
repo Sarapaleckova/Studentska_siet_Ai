@@ -1352,6 +1352,16 @@ body.modal-open {
     color: inherit;
 }
 
+.search-member-link {
+    text-decoration: none;
+    color: inherit;
+}
+
+.search-member-link:hover {
+    border-color: #9caed8;
+    box-shadow: 0 2px 8px rgba(16, 34, 70, 0.12);
+}
+
 .group-member-list {
     display: flex;
     flex-direction: column;
