@@ -953,6 +953,10 @@ textarea {
     gap: 10px;
 }
 
+.forgot-modal-panel {
+    width: min(100%, 460px);
+}
+
 .rating-modal-form {
     gap: 12px;
 }

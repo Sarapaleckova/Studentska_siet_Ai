@@ -36,9 +36,33 @@
                 <button class="btn" type="submit">Ďalej</button>
                 <a class="btn-link" href="/">Späť</a>
             </div>
-            <button class="forgot" type="button">Zabudnuté heslo</button>
+            <button class="forgot" type="button" id="forgot-password-open">Zabudnuté heslo</button>
         </form>
+
+        <p class="flash-message flash-success" id="forgot-password-success" hidden>Na zadaný e-mail bola odoslaná inštrukcia na obnovu hesla.</p>
     </div>
+
+    <section class="comments-modal" id="forgot-password-modal" aria-hidden="true">
+        <div class="comments-modal-backdrop" data-forgot-modal-close></div>
+        <div class="comments-modal-panel forgot-modal-panel" role="dialog" aria-modal="true" aria-labelledby="forgot-password-title">
+            <button class="comments-modal-close" type="button" aria-label="Zavrieť" data-forgot-modal-close>×</button>
+            <div class="comments-modal-header">
+                <h2 id="forgot-password-title">Zabudnuté heslo</h2>
+                <p>Zadajte svoj e-mail pre obnovu hesla.</p>
+            </div>
+
+            <form id="forgot-password-form" novalidate>
+                <div class="field">
+                    <label for="forgot-password-email">E-mail</label>
+                    <input id="forgot-password-email" name="forgot_password_email" type="email" required>
+                </div>
+                <div class="actions">
+                    <button class="btn" type="submit">Poslať</button>
+                    <button class="btn" type="button" data-forgot-modal-close>Zrušiť</button>
+                </div>
+            </form>
+        </div>
+    </section>
 
     <script>
         const toggleButtons = document.querySelectorAll('.toggle-password');
@@ -57,6 +81,76 @@
                 input.type = 'password';
                 button.textContent = 'Zobraziť heslo';
             });
+        });
+
+        const forgotModal = document.getElementById('forgot-password-modal');
+        const forgotOpenButton = document.getElementById('forgot-password-open');
+        const forgotCloseButtons = forgotModal ? forgotModal.querySelectorAll('[data-forgot-modal-close]') : [];
+        const forgotForm = document.getElementById('forgot-password-form');
+        const forgotEmailInput = document.getElementById('forgot-password-email');
+        const forgotSuccessMessage = document.getElementById('forgot-password-success');
+
+        const openForgotModal = function () {
+            if (!forgotModal) {
+                return;
+            }
+
+            forgotModal.classList.add('is-open');
+            forgotModal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('modal-open');
+            if (forgotEmailInput) {
+                forgotEmailInput.focus();
+            }
+        };
+
+        const closeForgotModal = function () {
+            if (!forgotModal) {
+                return;
+            }
+
+            forgotModal.classList.remove('is-open');
+            forgotModal.setAttribute('aria-hidden', 'true');
+            document.body.classList.remove('modal-open');
+        };
+
+        if (forgotOpenButton) {
+            forgotOpenButton.addEventListener('click', openForgotModal);
+        }
+
+        forgotCloseButtons.forEach(function (button) {
+            button.addEventListener('click', closeForgotModal);
+        });
+
+        if (forgotModal) {
+            forgotModal.addEventListener('click', function (event) {
+                if (event.target === forgotModal) {
+                    closeForgotModal();
+                }
+            });
+        }
+
+        if (forgotForm) {
+            forgotForm.addEventListener('submit', function (event) {
+                event.preventDefault();
+
+                if (!forgotEmailInput || !forgotEmailInput.value.trim()) {
+                    if (forgotEmailInput) {
+                        forgotEmailInput.focus();
+                    }
+                    return;
+                }
+
+                closeForgotModal();
+                if (forgotSuccessMessage) {
+                    forgotSuccessMessage.hidden = false;
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && forgotModal && forgotModal.classList.contains('is-open')) {
+                closeForgotModal();
+            }
         });
     </script>
 </body>
