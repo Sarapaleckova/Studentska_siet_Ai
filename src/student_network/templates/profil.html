@@ -19,7 +19,9 @@
     <div class="profile-header">
         <div class="avatar-wrap" aria-label="Profilová fotografia používateľa">
             {% if profile_photo_url %}
-                <img class="avatar-image" src="{{ profile_photo_url }}" alt="Profilová fotografia používateľa">
+                <button class="profile-photo-trigger" type="button" data-profile-photo-open aria-label="Zobraziť profilovú fotografiu vo väčšom zobrazení">
+                    <img class="avatar-image" src="{{ profile_photo_url }}" alt="Profilová fotografia používateľa">
+                </button>
             {% else %}
                 <div class="avatar-fallback" aria-hidden="true"></div>
             {% endif %}
@@ -49,6 +51,17 @@
         </div>
     {% endif %}
 </section>
+
+{% if profile_photo_url %}
+<section class="comments-modal profile-photo-modal" id="profile-photo-modal" aria-hidden="true">
+    <div class="comments-modal-backdrop" data-profile-photo-close></div>
+    <div class="comments-modal-panel profile-photo-modal-panel" role="dialog" aria-modal="true" aria-labelledby="profile-photo-modal-title">
+        <button class="comments-modal-close" type="button" aria-label="Zavrieť náhľad profilovej fotografie" data-profile-photo-close>×</button>
+        <h2 id="profile-photo-modal-title" class="profile-photo-modal-title">Profilová fotografia</h2>
+        <img class="profile-photo-modal-image" src="{{ profile_photo_url }}" alt="Profilová fotografia používateľa vo väčšom zobrazení">
+    </div>
+</section>
+{% endif %}
 
 <section class="section-card profile-card">
     <h2>Študijný profil</h2>
@@ -142,6 +155,52 @@
 {% endblock %}
 
 {% block scripts %}
+{% if profile_photo_url %}
+<script>
+(function () {
+    const modal = document.getElementById('profile-photo-modal');
+    const openButtons = document.querySelectorAll('[data-profile-photo-open]');
+    const closeButtons = modal ? modal.querySelectorAll('[data-profile-photo-close]') : [];
+
+    if (!modal || openButtons.length === 0) {
+        return;
+    }
+
+    const openModal = function () {
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    };
+
+    const closeModal = function () {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    };
+
+    openButtons.forEach(function (button) {
+        button.addEventListener('click', openModal);
+    });
+
+    closeButtons.forEach(function (button) {
+        button.addEventListener('click', closeModal);
+    });
+
+    modal.addEventListener('click', function (event) {
+        if (event.target === modal) {
+            closeModal();
+        }
+    });
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+            closeModal();
+        }
+    });
+})();
+</script>
+{% endif %}
+
 {% if edit_mode %}
 <script>
 (function () {
