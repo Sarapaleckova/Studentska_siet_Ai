@@ -66,7 +66,7 @@
             <div class="group-member-list">
                 {% for group in groups %}
                     {% if group.membership_status == 'member' %}
-                        <a class="group-card member-group-card" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='zdielat') }}">
+                        <a class="group-card member-group-card" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='hlavna') }}">
                             <div class="group-card-image-wrap">
                                 {% if group.obrazok_url %}
                                     <img class="group-card-image" src="{{ group.obrazok_url }}" alt="Obrázok skupiny {{ group.nazov }}">

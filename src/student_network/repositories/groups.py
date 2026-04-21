@@ -76,6 +76,7 @@ def get_group_by_id(group_id: int) -> Row | None:
             g.popis,
             g.obrazok_url,
             g.je_sukromna,
+            g.created_at,
             COALESCE(member_counts.member_count, 0) AS member_count
         FROM groups_table g
         LEFT JOIN (

@@ -71,7 +71,7 @@
         <div class="actions profile-actions">
             <button class="btn" type="submit">{{ submit_label }}</button>
             {% if is_edit %}
-                <a class="btn-link" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='clenovia') }}">Späť</a>
+                <a class="btn-link" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna') }}">Späť</a>
             {% else %}
                 <a class="btn-link" href="{{ url_for('aplikacia_skupiny') }}">Zrušiť</a>
             {% endif %}
@@ -152,6 +152,7 @@
 
 {% if is_edit %}
 <nav class="group-bottom-nav" aria-label="Sekcie detailu skupiny">
+    <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna') }}"><span>Hlavná</span></a>
     <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='zdielat') }}"><span>Zdieľať</span></a>
     <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='notifikacie') }}"><span>Notifikácie</span></a>
     <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_detail', group_id=group_id, tab='kalendar') }}"><span>Kalendár</span></a>

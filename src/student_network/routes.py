@@ -29,6 +29,7 @@ from student_network.repositories.group_events import (
     get_group_notifications,
     update_group_event,
 )
+from student_network.repositories.group_board_posts import create_group_board_post, get_group_board_posts
 from student_network.repositories.group_files import create_group_file, get_group_file_by_id, get_group_files
 from student_network.repositories.groups import (
     approve_group_request,
@@ -65,7 +66,7 @@ ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 ALLOWED_THEME_BG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 ALLOWED_GROUP_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 APP_BASE_PATH = '/studentska-siet'
-GROUP_TABS = {'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'}
+GROUP_TABS = {'hlavna', 'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'}
 ALLOWED_GROUP_SHARED_FILE_EXTENSIONS = ALLOWED_POST_FILE_EXTENSIONS | ALLOWED_POST_IMAGE_EXTENSIONS
 GROUP_FILE_ACCEPT_VALUE = ','.join(sorted(ALLOWED_GROUP_SHARED_FILE_EXTENSIONS))
 THEME_PRESETS: dict[str, dict[str, str]] = {
@@ -593,6 +594,7 @@ def register_routes(app: Flask) -> None:
             'obrazok_url': _group_image_src(group['obrazok_url']),
             'je_sukromna': bool(group['je_sukromna']),
             'member_count': int(group['member_count'] or 0),
+            'created_at': _format_datetime_eu(group['created_at']) if group['created_at'] else '',
         }
 
         user_is_admin = is_group_admin(group_id=group_id, user_id=int(g.user['id']))
@@ -630,9 +632,36 @@ def register_routes(app: Flask) -> None:
         prev_month_key = _month_key(*_shift_month(year_value, month_number, -1))
         next_month_key = _month_key(*_shift_month(year_value, month_number, 1))
 
-        active_detail_tab = request.args.get('tab', 'zdielat').strip().lower()
+        active_detail_tab = request.args.get('tab', 'hlavna').strip().lower()
         if active_detail_tab not in GROUP_TABS:
-            active_detail_tab = 'zdielat'
+            active_detail_tab = 'hlavna'
+
+        group_announcement_rows = get_group_board_posts(group_id=group_id, board_type='announcement')
+        group_member_post_rows = get_group_board_posts(group_id=group_id, board_type='member')
+        group_announcements = [
+            {
+                'id': row['id'],
+                'title': row['title'],
+                'content': row['content'],
+                'created_at': _format_datetime_eu(row['created_at']),
+                'author': f"{row['author_meno']} {row['author_priezvisko']}",
+                'author_profile_url': _profile_url_for_user(int(row['author_user_id'])),
+                'author_is_current_user': int(row['author_user_id']) == int(g.user['id']),
+            }
+            for row in group_announcement_rows
+        ]
+        group_member_posts = [
+            {
+                'id': row['id'],
+                'title': row['title'],
+                'content': row['content'],
+                'created_at': _format_datetime_eu(row['created_at']),
+                'author': f"{row['author_meno']} {row['author_priezvisko']}",
+                'author_profile_url': _profile_url_for_user(int(row['author_user_id'])),
+                'author_is_current_user': int(row['author_user_id']) == int(g.user['id']),
+            }
+            for row in group_member_post_rows
+        ]
 
         month_event_rows = get_group_events_for_month(group_id=group_id, year=year_value, month=month_number)
         month_events = [
@@ -693,6 +722,8 @@ def register_routes(app: Flask) -> None:
             group=group_view,
             hide_main_nav=True,
             active_detail_tab=active_detail_tab,
+            group_announcements=group_announcements,
+            group_member_posts=group_member_posts,
             current_month_key=current_month_key,
             prev_month_key=prev_month_key,
             next_month_key=next_month_key,
@@ -707,6 +738,58 @@ def register_routes(app: Flask) -> None:
             pending_requests=pending_requests,
             is_group_admin=user_is_admin,
         )
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/nastenka', methods=['POST'])
+    @login_required
+    def aplikacia_skupina_nastenka(group_id: int) -> str:
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            flash('Príspevky na nástenke sú dostupné len pre členov skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        board_type = request.form.get('board_type', '').strip().lower()
+        title = request.form.get('title', '').strip()
+        content = request.form.get('content', '').strip()
+
+        if board_type not in {'announcement', 'member'}:
+            flash('Neplatný typ nástenky.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna'))
+
+        if board_type == 'announcement' and not is_group_admin(group_id=group_id, user_id=int(g.user['id'])):
+            flash('Oznamy môže pridávať iba administrátor skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna'))
+
+        if not title:
+            flash('Nadpis je povinný.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+        if len(title) > 140:
+            flash('Nadpis môže mať najviac 140 znakov.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+        if not content:
+            flash('Obsah príspevku je povinný.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+        if len(content) > 1500:
+            flash('Obsah môže mať najviac 1500 znakov.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+        create_group_board_post(
+            group_id=group_id,
+            author_user_id=int(g.user['id']),
+            board_type=board_type,
+            title=title,
+            content=content,
+        )
+
+        flash('Príspevok bol pridaný na nástenku.', 'success')
+        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
 
     @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/nastavenia', methods=['GET', 'POST'])
     @login_required

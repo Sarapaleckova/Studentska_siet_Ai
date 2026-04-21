@@ -1509,6 +1509,172 @@ body.modal-open {
     color: #0b1f4d;
 }
 
+.group-main-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.group-main-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(220px, 0.9fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.group-main-meta {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 14px;
+    background: #edf4ff;
+    border: 1px solid #d8e3fb;
+    color: #1a2540;
+}
+
+.group-main-meta p {
+    margin: 0;
+}
+
+.group-board-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 16px;
+}
+
+.group-board-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid #d8dfef;
+    background: #fbfcff;
+}
+
+.group-board-announcements {
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8ff 100%);
+}
+
+.group-board-member-area {
+    background: linear-gradient(180deg, #fffdf6 0%, #fffaf0 100%);
+}
+
+.group-board-header h3 {
+    margin: 0 0 4px 0;
+    color: #0b1f4d;
+}
+
+.group-board-header p {
+    margin: 0;
+    color: #4a5b7a;
+}
+
+.group-board-form {
+    border: 1px solid #d8dfef;
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.group-board-form textarea {
+    min-height: 112px;
+}
+
+.group-announcement-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.group-announcement-card {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #d8dfef;
+    background: #ffffff;
+    box-shadow: 0 8px 20px rgba(12, 28, 62, 0.06);
+}
+
+.group-announcement-title {
+    margin: 0 0 8px 0;
+    color: #112955;
+}
+
+.group-announcement-content {
+    margin: 0;
+    white-space: pre-wrap;
+    color: #1a2540;
+    line-height: 1.55;
+}
+
+.group-announcement-meta {
+    margin: 10px 0 0 0;
+    color: #556993;
+    font-size: 0.88rem;
+}
+
+.group-member-note-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+.group-member-note-card {
+    position: relative;
+    min-height: 190px;
+    padding: 16px 14px 14px 14px;
+    border-radius: 16px 16px 12px 18px;
+    border: 1px solid rgba(153, 121, 52, 0.28);
+    background: linear-gradient(180deg, #fff6b8 0%, #ffe98d 100%);
+    box-shadow: 0 10px 22px rgba(89, 68, 12, 0.18);
+    transform: rotate(-0.6deg);
+}
+
+.group-member-note-card:nth-child(2n) {
+    background: linear-gradient(180deg, #d8f0ff 0%, #bde5ff 100%);
+    transform: rotate(0.7deg);
+}
+
+.group-member-note-card:nth-child(3n) {
+    background: linear-gradient(180deg, #ffdfe8 0%, #ffcdde 100%);
+    transform: rotate(-0.3deg);
+}
+
+.group-member-note-pin {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    width: 22px;
+    height: 22px;
+    margin-left: -11px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%, #ffffff 0%, #d13f3f 34%, #8f1e1e 100%);
+    box-shadow: 0 4px 10px rgba(88, 26, 26, 0.28);
+}
+
+.group-member-note-header {
+    margin-bottom: 12px;
+    padding-top: 6px;
+}
+
+.group-member-note-title {
+    margin: 0 0 6px 0;
+    color: #2c2202;
+}
+
+.group-member-note-meta {
+    margin: 0;
+    font-size: 0.82rem;
+    color: rgba(44, 34, 2, 0.72);
+}
+
+.group-member-note-content {
+    margin: 0;
+    white-space: pre-wrap;
+    color: #2c2202;
+    line-height: 1.55;
+}
+
 .group-tab-note {
     margin-bottom: 0;
     color: #405786;
@@ -2084,7 +2250,7 @@ body.modal-open {
     right: 0;
     bottom: 0;
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.22);
     background: var(--app-nav-color);
@@ -2185,6 +2351,19 @@ body.modal-open {
 
     .group-detail-page {
         padding-bottom: 76px;
+    }
+
+    .group-main-summary,
+    .group-board-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .group-member-note-card {
+        min-height: 0;
+    }
+
+    .group-member-note-grid {
+        grid-template-columns: 1fr;
     }
 
     .calendar-toolbar {

@@ -134,6 +134,18 @@ CREATE TABLE IF NOT EXISTS group_files (
     FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
     FOREIGN KEY (uploaded_by_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS group_board_posts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    author_user_id INTEGER NOT NULL,
+    board_type TEXT NOT NULL CHECK (board_type IN ('announcement', 'member')),
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
+    FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 

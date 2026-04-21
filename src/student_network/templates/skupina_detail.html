@@ -28,9 +28,111 @@
     {% endwith %}
 
     <main class="group-detail-main" id="group-detail-main-content">
+        <section class="section-card group-tab-panel group-main-panel {% if active_detail_tab == 'hlavna' %}active{% endif %}" data-tab-panel="hlavna" {% if active_detail_tab != 'hlavna' %}hidden{% endif %}>
+            <div class="group-main-summary">
+                <div>
+                    <h2>Hlavná stránka skupiny</h2>
+                    <p class="group-detail-description" id="group-description">{{ group.popis }}</p>
+                </div>
+                <div class="group-main-meta">
+                    <p><strong>Vznik skupiny:</strong> {{ group.created_at if group.created_at else 'Neuvedené' }}</p>
+                    <p><strong>Počet členov:</strong> {{ group.member_count }}</p>
+                    <p><strong>Prístup:</strong> {% if group.je_sukromna %}Súkromná skupina{% else %}Verejná skupina{% endif %}</p>
+                </div>
+            </div>
+
+            <div class="group-board-layout" id="nastenka">
+                <section class="group-board-section group-board-announcements">
+                    <div class="group-board-header">
+                        <div>
+                            <h3>Nástenka oznamov</h3>
+                            <p>Oficiálne oznámenia od administrátorov skupiny.</p>
+                        </div>
+                    </div>
+
+                    {% if is_group_admin %}
+                        <form class="group-board-form group-board-form-announcement" method="post" action="{{ url_for('aplikacia_skupina_nastenka', group_id=group.id) }}">
+                            <input type="hidden" name="board_type" value="announcement">
+                            <div class="field">
+                                <label for="announcement-title">Nadpis oznamu</label>
+                                <input id="announcement-title" name="title" type="text" maxlength="140" required>
+                            </div>
+                            <div class="field">
+                                <label for="announcement-content">Text oznamu</label>
+                                <textarea id="announcement-content" name="content" rows="4" maxlength="1500" required></textarea>
+                            </div>
+                            <div class="actions">
+                                <button class="btn" type="submit">Pridať oznam</button>
+                            </div>
+                        </form>
+                    {% endif %}
+
+                    {% if group_announcements %}
+                        <div class="group-announcement-list">
+                            {% for post in group_announcements %}
+                                <article class="group-announcement-card">
+                                    <h4 class="group-announcement-title">{{ post.title }}</h4>
+                                    <p class="group-announcement-content">{{ post.content }}</p>
+                                    <p class="group-announcement-meta">
+                                        <a class="profile-link-inline profile-link-inline-text" href="{{ post.author_profile_url }}">{{ post.author }}{% if post.author_is_current_user %} (Vy){% endif %}</a>
+                                        • {{ post.created_at }}
+                                    </p>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>Zatiaľ nie sú dostupné žiadne oznamy.</p>
+                    {% endif %}
+                </section>
+
+                <section class="group-board-section group-board-member-area">
+                    <div class="group-board-header">
+                        <div>
+                            <h3>Nástenka skupiny</h3>
+                            <p>Priestor pre členov skupiny na odkazy, nápady a krátke odkazy.</p>
+                        </div>
+                    </div>
+
+                    <form class="group-board-form group-board-form-member" method="post" action="{{ url_for('aplikacia_skupina_nastenka', group_id=group.id) }}">
+                        <input type="hidden" name="board_type" value="member">
+                        <div class="field">
+                            <label for="member-board-title">Nadpis príspevku</label>
+                            <input id="member-board-title" name="title" type="text" maxlength="140" required>
+                        </div>
+                        <div class="field">
+                            <label for="member-board-content">Text príspevku</label>
+                            <textarea id="member-board-content" name="content" rows="4" maxlength="1500" required></textarea>
+                        </div>
+                        <div class="actions">
+                            <button class="btn" type="submit">Pridať na nástenku</button>
+                        </div>
+                    </form>
+
+                    {% if group_member_posts %}
+                        <div class="group-member-note-grid">
+                            {% for post in group_member_posts %}
+                                <article class="group-member-note-card">
+                                    <div class="group-member-note-pin" aria-hidden="true"></div>
+                                    <div class="group-member-note-header">
+                                        <h4 class="group-member-note-title">{{ post.title }}</h4>
+                                        <p class="group-member-note-meta">
+                                            <a class="profile-link-inline profile-link-inline-text" href="{{ post.author_profile_url }}">{{ post.author }}{% if post.author_is_current_user %} (Vy){% endif %}</a>
+                                            • {{ post.created_at }}
+                                        </p>
+                                    </div>
+                                    <p class="group-member-note-content">{{ post.content }}</p>
+                                </article>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>Zatiaľ tu nie sú žiadne príspevky od členov.</p>
+                    {% endif %}
+                </section>
+            </div>
+        </section>
+
         <section class="section-card group-tab-panel {% if active_detail_tab == 'zdielat' %}active{% endif %}" data-tab-panel="zdielat" {% if active_detail_tab != 'zdielat' %}hidden{% endif %}>
             <h2>Zdieľať</h2>
-            <p class="group-detail-description" id="group-description">{{ group.popis }}</p>
             <p class="group-tab-note">V tejto sekcii môžeš zdieľať príspevky, oznamy a študijné materiály pre členov skupiny.</p>
 
             <form class="group-upload-form" method="post" action="{{ url_for('aplikacia_skupina_subory_nahrat', group_id=group.id) }}" enctype="multipart/form-data">
@@ -307,6 +409,7 @@
     </div>
 
     <nav class="group-bottom-nav" aria-label="Sekcie detailu skupiny">
+        <button class="group-nav-item {% if active_detail_tab == 'hlavna' %}active{% endif %}" type="button" data-tab-target="hlavna">Hlavná</button>
         <button class="group-nav-item {% if active_detail_tab == 'zdielat' %}active{% endif %}" type="button" data-tab-target="zdielat">Zdieľať</button>
         <button class="group-nav-item {% if active_detail_tab == 'notifikacie' %}active{% endif %}" type="button" data-tab-target="notifikacie">Notifikácie</button>
         <button class="group-nav-item {% if active_detail_tab == 'kalendar' %}active{% endif %}" type="button" data-tab-target="kalendar">Kalendár</button>
@@ -399,7 +502,7 @@
             return;
         }
 
-        const allowedTabs = ['zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'];
+        const allowedTabs = ['hlavna', 'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'];
         if (allowedTabs.indexOf(tabName) === -1) {
             return;
         }
