@@ -186,6 +186,47 @@ textarea {
     font-size: 0.95rem;
 }
 
+.top-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.top-profile-link {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    border: 2px solid rgba(255, 255, 255, 0.42);
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    box-sizing: border-box;
+}
+
+.top-profile-link:hover,
+.top-profile-link:focus-visible,
+.top-profile-link.active {
+    border-color: #ffffff;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.top-profile-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.top-profile-fallback {
+    font-size: 0.95rem;
+    font-weight: bold;
+    line-height: 1;
+}
+
 .search-wrap {
     margin-bottom: 14px;
 }

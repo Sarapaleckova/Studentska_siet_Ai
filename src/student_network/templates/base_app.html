@@ -13,7 +13,21 @@
     <header class="top-nav">
         <div class="top-nav-inner">
             <a class="app-title" href="{{ url_for('aplikacia_domov') }}">Študentská sieť</a>
-            <a class="exit-link" id="logout-link" href="{{ url_for('odhlasenie') }}">Odhlásiť sa</a>
+            <div class="top-nav-actions">
+                <a
+                    class="top-profile-link {% if active_tab == 'profil' %}active{% endif %}"
+                    href="{{ url_for('aplikacia_profil') }}"
+                    title="Profil"
+                    aria-label="Profil"
+                >
+                    {% if top_nav_profile_photo_url %}
+                        <img class="top-profile-image" src="{{ top_nav_profile_photo_url }}" alt="Profilová fotografia používateľa">
+                    {% else %}
+                        <span class="top-profile-fallback" aria-hidden="true">{{ top_nav_profile_initial }}</span>
+                    {% endif %}
+                </a>
+                <a class="exit-link" id="logout-link" href="{{ url_for('odhlasenie') }}">Odhlásiť sa</a>
+            </div>
         </div>
     </header>
 
@@ -27,7 +41,6 @@
         <a class="nav-item {% if active_tab == 'skupiny' %}active{% endif %}" href="{{ url_for('aplikacia_skupiny') }}">Skupiny</a>
         <a class="nav-item {% if active_tab == 'hladat' %}active{% endif %}" href="{{ url_for('aplikacia_hladat') }}">Hľadať</a>
         <a class="nav-item {% if active_tab == 'pridat' %}active{% endif %}" href="{{ url_for('aplikacia_pridat') }}">Pridať</a>
-        <a class="nav-item {% if active_tab == 'profil' %}active{% endif %}" href="{{ url_for('aplikacia_profil') }}">Profil</a>
     </nav>
     {% endif %}
 

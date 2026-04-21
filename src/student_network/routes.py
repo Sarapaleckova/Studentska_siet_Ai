@@ -296,11 +296,20 @@ def register_routes(app: Flask) -> None:
     def load_logged_in_user() -> None:
         user_id = session.get('user_id')
         g.user = get_user_by_id(user_id) if user_id else None
-        g.app_theme = _build_theme_context(get_profile_by_user_id(int(g.user['id']))) if g.user else _build_theme_context(None)
+        profile_row = get_profile_by_user_id(int(g.user['id'])) if g.user else None
+        g.app_theme = _build_theme_context(profile_row)
+        profile_photo_path = str(profile_row['profilova_fotka'] or '') if profile_row is not None else ''
+        g.top_nav_profile_photo_url = url_for('static', filename=profile_photo_path) if profile_photo_path else ''
+        first_name = str(g.user['meno'] or '').strip() if g.user else ''
+        g.top_nav_profile_initial = first_name[:1].upper() if first_name else 'U'
 
     @app.context_processor
-    def inject_app_theme() -> dict[str, dict[str, str]]:
-        return {'app_theme': g.app_theme if hasattr(g, 'app_theme') else _build_theme_context(None)}
+    def inject_app_theme() -> dict[str, dict[str, str] | str]:
+        return {
+            'app_theme': g.app_theme if hasattr(g, 'app_theme') else _build_theme_context(None),
+            'top_nav_profile_photo_url': g.top_nav_profile_photo_url if hasattr(g, 'top_nav_profile_photo_url') else '',
+            'top_nav_profile_initial': g.top_nav_profile_initial if hasattr(g, 'top_nav_profile_initial') else 'U',
+        }
 
     def login_required(view):
         @wraps(view)
