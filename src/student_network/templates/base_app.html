@@ -6,7 +6,10 @@
     <title>{% block title %}Študentská sieť{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="page page-app">
+<body
+    class="page page-app"
+    style="--app-bg-color: {{ app_theme.bg_color }}; --app-nav-color: {{ app_theme.nav_color }}; --app-bg-image: {{ app_theme.bg_image_css }};"
+>
     <header class="top-nav">
         <div class="top-nav-inner">
             <a class="app-title" href="{{ url_for('aplikacia_domov') }}">Študentská sieť</a>

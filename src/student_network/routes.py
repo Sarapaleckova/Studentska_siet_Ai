@@ -57,11 +57,18 @@ from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
 
 ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
+ALLOWED_THEME_BG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 ALLOWED_GROUP_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 APP_BASE_PATH = '/studentska-siet'
 GROUP_TABS = {'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'}
 ALLOWED_GROUP_SHARED_FILE_EXTENSIONS = ALLOWED_POST_FILE_EXTENSIONS | ALLOWED_POST_IMAGE_EXTENSIONS
 GROUP_FILE_ACCEPT_VALUE = ','.join(sorted(ALLOWED_GROUP_SHARED_FILE_EXTENSIONS))
+THEME_PRESETS: dict[str, dict[str, str]] = {
+    'default': {'bg': '#0b1f4d', 'nav': '#071433'},
+    'pink': {'bg': '#b84f8a', 'nav': '#7a1f4e'},
+    'ocean': {'bg': '#1a4f8b', 'nav': '#0f2f54'},
+}
+HEX_COLOR_PATTERN = re.compile(r'^#[0-9a-fA-F]{6}$')
 
 
 def _post_file_type_from_name(file_name: str) -> str:
@@ -175,6 +182,34 @@ def _group_image_src(image_value: str) -> str:
     return url_for('static', filename=image_value)
 
 
+def _normalize_theme_values(theme_preset: str, bg_color: str, nav_color: str) -> tuple[str, str, str]:
+    preset_key = theme_preset if theme_preset in {'default', 'pink', 'ocean', 'custom'} else 'default'
+
+    if preset_key != 'custom':
+        preset = THEME_PRESETS.get(preset_key, THEME_PRESETS['default'])
+        return preset_key, preset['bg'], preset['nav']
+
+    normalized_bg = bg_color if HEX_COLOR_PATTERN.fullmatch(bg_color or '') else THEME_PRESETS['default']['bg']
+    normalized_nav = nav_color if HEX_COLOR_PATTERN.fullmatch(nav_color or '') else THEME_PRESETS['default']['nav']
+    return preset_key, normalized_bg, normalized_nav
+
+
+def _build_theme_context(profile_row) -> dict[str, str]:
+    theme_preset, bg_color, nav_color = _normalize_theme_values(
+        str(profile_row['theme_preset'] or 'default') if profile_row is not None else 'default',
+        str(profile_row['theme_bg_color'] or THEME_PRESETS['default']['bg']) if profile_row is not None else THEME_PRESETS['default']['bg'],
+        str(profile_row['theme_nav_color'] or THEME_PRESETS['default']['nav']) if profile_row is not None else THEME_PRESETS['default']['nav'],
+    )
+    bg_image = str(profile_row['theme_bg_image'] or '') if profile_row is not None else ''
+
+    return {
+        'preset': theme_preset,
+        'bg_color': bg_color,
+        'nav_color': nav_color,
+        'bg_image_css': f"url('{url_for('static', filename=bg_image)}')" if bg_image else 'none',
+    }
+
+
 def _parse_group_month(raw_value: str) -> tuple[int, int]:
     today = date.today()
     if not raw_value or not re.fullmatch(r'\d{4}-\d{2}', raw_value):
@@ -256,6 +291,11 @@ def register_routes(app: Flask) -> None:
     def load_logged_in_user() -> None:
         user_id = session.get('user_id')
         g.user = get_user_by_id(user_id) if user_id else None
+        g.app_theme = _build_theme_context(get_profile_by_user_id(int(g.user['id']))) if g.user else _build_theme_context(None)
+
+    @app.context_processor
+    def inject_app_theme() -> dict[str, dict[str, str]]:
+        return {'app_theme': g.app_theme if hasattr(g, 'app_theme') else _build_theme_context(None)}
 
     def login_required(view):
         @wraps(view)
@@ -1333,6 +1373,7 @@ def register_routes(app: Flask) -> None:
         profile_values = profile_values_from_row(profile)
         values = profile_form_values(g.user, profile)
         profile_photo_path = profile_values['profilova_fotka']
+        theme_bg_image_path = profile_values['theme_bg_image']
 
         if request.method == 'POST':
             if request.form.get('action') == 'cancel':
@@ -1361,6 +1402,45 @@ def register_routes(app: Flask) -> None:
 
                     profile_photo_path = f"uploads/profile_photos/{new_filename}"
 
+            uploaded_theme_bg = request.files.get('theme_bg_image')
+            if uploaded_theme_bg and uploaded_theme_bg.filename:
+                sanitized_bg_name = secure_filename(uploaded_theme_bg.filename)
+                bg_extension = Path(sanitized_bg_name).suffix.lower()
+
+                if bg_extension not in ALLOWED_THEME_BG_EXTENSIONS:
+                    errors['theme_bg_image'] = 'Povolené formáty obrázka pozadia: PNG, JPG, JPEG, WEBP, GIF.'
+                else:
+                    bg_upload_dir = Path(app.config['THEME_BG_UPLOAD_DIR'])
+                    new_bg_name = f"user_{int(g.user['id'])}_theme_{uuid4().hex}{bg_extension}"
+                    bg_destination = bg_upload_dir / new_bg_name
+                    uploaded_theme_bg.save(bg_destination)
+
+                    if theme_bg_image_path:
+                        old_bg_file = Path(app.static_folder or '') / theme_bg_image_path
+                        if old_bg_file.exists() and old_bg_file.is_file():
+                            old_bg_file.unlink()
+
+                    theme_bg_image_path = f"uploads/theme_backgrounds/{new_bg_name}"
+
+            if request.form.get('remove_theme_bg') == '1' and not (uploaded_theme_bg and uploaded_theme_bg.filename):
+                if theme_bg_image_path:
+                    old_bg_file = Path(app.static_folder or '') / theme_bg_image_path
+                    if old_bg_file.exists() and old_bg_file.is_file():
+                        old_bg_file.unlink()
+                theme_bg_image_path = ''
+
+            selected_theme_preset = values.get('theme_preset', 'default')
+            selected_theme_bg_color = values.get('theme_bg_color', THEME_PRESETS['default']['bg'])
+            selected_theme_nav_color = values.get('theme_nav_color', THEME_PRESETS['default']['nav'])
+            selected_theme_preset, selected_theme_bg_color, selected_theme_nav_color = _normalize_theme_values(
+                selected_theme_preset,
+                selected_theme_bg_color,
+                selected_theme_nav_color,
+            )
+            values['theme_preset'] = selected_theme_preset
+            values['theme_bg_color'] = selected_theme_bg_color
+            values['theme_nav_color'] = selected_theme_nav_color
+
             if not errors:
                 update_user_name(
                     user_id=int(g.user['id']),
@@ -1373,11 +1453,16 @@ def register_routes(app: Flask) -> None:
                     rocnik_studia=values['rocnik_studia'],
                     popis=values['popis'],
                     profilova_fotka=profile_photo_path,
+                    theme_preset=values['theme_preset'],
+                    theme_bg_color=values['theme_bg_color'],
+                    theme_nav_color=values['theme_nav_color'],
+                    theme_bg_image=theme_bg_image_path,
                 )
                 flash('Profil bol úspešne uložený.', 'success')
                 return redirect(url_for('aplikacia_profil'))
 
         profile_photo_url = url_for('static', filename=profile_photo_path) if profile_photo_path else None
+        theme_bg_image_url = url_for('static', filename=theme_bg_image_path) if theme_bg_image_path else None
 
         return render_template(
             'profil.html',
@@ -1391,6 +1476,8 @@ def register_routes(app: Flask) -> None:
             is_public_view=False,
             user_posts=user_posts,
             user_groups=user_groups,
+            theme_bg_image_url=theme_bg_image_url,
+            theme_presets=THEME_PRESETS,
         )
 
     @app.route(f'{APP_BASE_PATH}/profil/<int:user_id>')
@@ -1445,4 +1532,6 @@ def register_routes(app: Flask) -> None:
             is_public_view=True,
             user_posts=user_posts,
             user_groups=user_groups,
+            theme_bg_image_url=None,
+            theme_presets=THEME_PRESETS,
         )

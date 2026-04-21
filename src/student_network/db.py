@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     rocnik_studia TEXT NOT NULL DEFAULT '',
     popis TEXT NOT NULL DEFAULT '',
     profilova_fotka TEXT NOT NULL DEFAULT '',
+    theme_preset TEXT NOT NULL DEFAULT 'default',
+    theme_bg_color TEXT NOT NULL DEFAULT '#0b1f4d',
+    theme_nav_color TEXT NOT NULL DEFAULT '#071433',
+    theme_bg_image TEXT NOT NULL DEFAULT '',
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -153,6 +157,7 @@ def init_db() -> None:
     database = get_db()
     database.executescript(SCHEMA)
     ensure_profile_photo_column(database)
+    ensure_profile_theme_columns(database)
     ensure_group_membership_joined_at_column(database)
     ensure_group_membership_role_column(database)
     ensure_group_event_notification_schedule_columns(database)
@@ -167,6 +172,31 @@ def ensure_profile_photo_column(database: sqlite3.Connection) -> None:
     if 'profilova_fotka' not in existing_column_names:
         database.execute(
             "ALTER TABLE user_profiles ADD COLUMN profilova_fotka TEXT NOT NULL DEFAULT ''"
+        )
+
+
+def ensure_profile_theme_columns(database: sqlite3.Connection) -> None:
+    columns = database.execute("PRAGMA table_info(user_profiles)").fetchall()
+    existing_column_names = {column['name'] for column in columns}
+
+    if 'theme_preset' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE user_profiles ADD COLUMN theme_preset TEXT NOT NULL DEFAULT 'default'"
+        )
+
+    if 'theme_bg_color' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE user_profiles ADD COLUMN theme_bg_color TEXT NOT NULL DEFAULT '#0b1f4d'"
+        )
+
+    if 'theme_nav_color' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE user_profiles ADD COLUMN theme_nav_color TEXT NOT NULL DEFAULT '#071433'"
+        )
+
+    if 'theme_bg_image' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE user_profiles ADD COLUMN theme_bg_image TEXT NOT NULL DEFAULT ''"
         )
 
 

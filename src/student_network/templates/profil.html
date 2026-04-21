@@ -105,6 +105,59 @@
                 <textarea id="popis" name="popis" rows="5">{{ values.popis }}</textarea>
                 <p class="form-error field-error" aria-live="polite">{{ errors.popis if errors else '' }}</p>
             </div>
+
+            <fieldset class="field profile-theme-fieldset">
+                <legend>Vzhľad aplikácie</legend>
+
+                <div class="theme-preset-options" role="radiogroup" aria-label="Predvoľby témy">
+                    <label>
+                        <input type="radio" name="theme_preset" value="default" {% if values.theme_preset == 'default' %}checked{% endif %}>
+                        <span>Predvolená</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="theme_preset" value="pink" {% if values.theme_preset == 'pink' %}checked{% endif %}>
+                        <span>Ružová</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="theme_preset" value="ocean" {% if values.theme_preset == 'ocean' %}checked{% endif %}>
+                        <span>Ocean</span>
+                    </label>
+                    <label>
+                        <input type="radio" name="theme_preset" value="custom" {% if values.theme_preset == 'custom' %}checked{% endif %}>
+                        <span>Vlastná</span>
+                    </label>
+                </div>
+                <p class="form-error field-error" aria-live="polite">{{ errors.theme_preset if errors else '' }}</p>
+
+                <div class="theme-custom-colors" id="theme-custom-colors-wrap" {% if values.theme_preset != 'custom' %}hidden{% endif %}>
+                    <div>
+                        <label for="theme_bg_color">Farba pozadia</label>
+                        <input id="theme_bg_color" class="theme-color-input" type="color" name="theme_bg_color" value="{{ values.theme_bg_color if values.theme_bg_color else '#0b1f4d' }}">
+                        <p class="form-error field-error" aria-live="polite">{{ errors.theme_bg_color if errors else '' }}</p>
+                    </div>
+                    <div>
+                        <label for="theme_nav_color">Farba líšt</label>
+                        <input id="theme_nav_color" class="theme-color-input" type="color" name="theme_nav_color" value="{{ values.theme_nav_color if values.theme_nav_color else '#071433' }}">
+                        <p class="form-error field-error" aria-live="polite">{{ errors.theme_nav_color if errors else '' }}</p>
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label for="theme_bg_image">Obrázok pozadia (voliteľný)</label>
+                    <input id="theme_bg_image" name="theme_bg_image" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+                    {% if theme_bg_image_url %}
+                        <div class="theme-bg-preview">
+                            <img src="{{ theme_bg_image_url }}" alt="Aktuálne pozadie témy">
+                        </div>
+                        <label class="theme-bg-remove">
+                            <input type="checkbox" name="remove_theme_bg" value="1">
+                            <span>Odstrániť aktuálny obrázok pozadia</span>
+                        </label>
+                    {% endif %}
+                    <p class="form-error field-error" aria-live="polite">{{ errors.theme_bg_image if errors else '' }}</p>
+                </div>
+            </fieldset>
+
             <div class="actions profile-actions">
                 <button class="btn" type="submit" name="action" value="save">Uložiť profil</button>
                 <button class="btn" type="submit" name="action" value="cancel" formnovalidate>Zrušiť</button>
@@ -213,10 +266,8 @@
     const fileNameLabel = document.getElementById('profile-photo-selected-name');
     const previewWrap = document.getElementById('profile-photo-preview-wrap');
     const previewImage = document.getElementById('profile-photo-preview');
-
-    if (!fileInput || !dropZone || !fileNameLabel || !previewWrap || !previewImage) {
-        return;
-    }
+    const themePresetInputs = document.querySelectorAll('input[name="theme_preset"]');
+    const customColorsWrap = document.getElementById('theme-custom-colors-wrap');
 
     const isSupportedImage = function (file) {
         return file && file.type && file.type.indexOf('image/') === 0;
@@ -247,35 +298,50 @@
         showPreview(file);
     };
 
-    dropZone.addEventListener('click', function () {
-        fileInput.click();
-    });
+    if (fileInput && dropZone && fileNameLabel && previewWrap && previewImage) {
+        dropZone.addEventListener('click', function () {
+            fileInput.click();
+        });
 
-    dropZone.addEventListener('dragover', function (event) {
-        event.preventDefault();
-        dropZone.classList.add('drop-zone-active');
-    });
+        dropZone.addEventListener('dragover', function (event) {
+            event.preventDefault();
+            dropZone.classList.add('drop-zone-active');
+        });
 
-    dropZone.addEventListener('dragleave', function () {
-        dropZone.classList.remove('drop-zone-active');
-    });
+        dropZone.addEventListener('dragleave', function () {
+            dropZone.classList.remove('drop-zone-active');
+        });
 
-    dropZone.addEventListener('drop', function (event) {
-        event.preventDefault();
-        dropZone.classList.remove('drop-zone-active');
-        const file = event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null;
-        if (file) {
-            assignFile(file);
-        }
-    });
+        dropZone.addEventListener('drop', function (event) {
+            event.preventDefault();
+            dropZone.classList.remove('drop-zone-active');
+            const file = event.dataTransfer && event.dataTransfer.files ? event.dataTransfer.files[0] : null;
+            if (file) {
+                assignFile(file);
+            }
+        });
 
-    fileInput.addEventListener('change', function () {
-        const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
-        if (file) {
-            fileNameLabel.textContent = file.name;
-            showPreview(file);
-        }
-    });
+        fileInput.addEventListener('change', function () {
+            const file = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+            if (file) {
+                fileNameLabel.textContent = file.name;
+                showPreview(file);
+            }
+        });
+    }
+
+    if (themePresetInputs.length > 0 && customColorsWrap) {
+        const refreshThemeMode = function () {
+            const selectedInput = document.querySelector('input[name="theme_preset"]:checked');
+            customColorsWrap.hidden = !selectedInput || selectedInput.value !== 'custom';
+        };
+
+        themePresetInputs.forEach(function (input) {
+            input.addEventListener('change', refreshThemeMode);
+        });
+
+        refreshThemeMode();
+    }
 })();
 </script>
 {% endif %}

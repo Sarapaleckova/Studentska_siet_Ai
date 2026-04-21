@@ -11,6 +11,10 @@ def profile_values_from_row(profile: Row | None) -> dict[str, str]:
             'rocnik_studia': '',
             'popis': '',
             'profilova_fotka': '',
+            'theme_preset': 'default',
+            'theme_bg_color': '#0b1f4d',
+            'theme_nav_color': '#071433',
+            'theme_bg_image': '',
         }
 
     return {
@@ -18,6 +22,10 @@ def profile_values_from_row(profile: Row | None) -> dict[str, str]:
         'rocnik_studia': profile['rocnik_studia'] or '',
         'popis': profile['popis'] or '',
         'profilova_fotka': profile['profilova_fotka'] or '',
+        'theme_preset': profile['theme_preset'] or 'default',
+        'theme_bg_color': profile['theme_bg_color'] or '#0b1f4d',
+        'theme_nav_color': profile['theme_nav_color'] or '#071433',
+        'theme_bg_image': profile['theme_bg_image'] or '',
     }
 
 
@@ -38,6 +46,9 @@ def validate_profile(form: Mapping[str, str], current_user: Mapping[str, str] | 
         'skola': form.get('skola', '').strip(),
         'rocnik_studia': form.get('rocnik_studia', '').strip(),
         'popis': form.get('popis', '').strip(),
+        'theme_preset': form.get('theme_preset', 'default').strip(),
+        'theme_bg_color': form.get('theme_bg_color', '#0b1f4d').strip(),
+        'theme_nav_color': form.get('theme_nav_color', '#071433').strip(),
     }
     errors: dict[str, str] = {}
 
@@ -61,5 +72,14 @@ def validate_profile(form: Mapping[str, str], current_user: Mapping[str, str] | 
 
     if len(values['popis']) > 500:
         errors['popis'] = 'Popis môže mať najviac 500 znakov.'
+
+    if values['theme_preset'] not in {'default', 'pink', 'ocean', 'custom'}:
+        errors['theme_preset'] = 'Neplatný výber témy.'
+
+    if len(values['theme_bg_color']) != 7 or not values['theme_bg_color'].startswith('#'):
+        errors['theme_bg_color'] = 'Farba pozadia má neplatný formát.'
+
+    if len(values['theme_nav_color']) != 7 or not values['theme_nav_color'].startswith('#'):
+        errors['theme_nav_color'] = 'Farba líšt má neplatný formát.'
 
     return errors, values

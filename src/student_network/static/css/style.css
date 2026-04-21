@@ -4,6 +4,12 @@ body {
     font-family: Arial, sans-serif;
 }
 
+:root {
+    --app-bg-color: #0b1f4d;
+    --app-nav-color: #071433;
+    --app-bg-image: none;
+}
+
 .page {
     background: #0b1f4d;
 }
@@ -114,6 +120,12 @@ textarea {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    background-color: var(--app-bg-color);
+    background-image: var(--app-bg-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }
 
 .app-content {
@@ -140,8 +152,8 @@ textarea {
     left: 0;
     right: 0;
     z-index: 10;
-    background: #071433;
-    border-bottom: 1px solid #1a2f63;
+    background: var(--app-nav-color);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .top-nav-inner {
@@ -199,8 +211,8 @@ textarea {
     left: 0;
     right: 0;
     display: flex;
-    background: #071433;
-    border-top: 1px solid #1a2f63;
+    background: var(--app-nav-color);
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .nav-item {
@@ -347,6 +359,66 @@ textarea {
     margin-top: 14px;
 }
 
+.profile-theme-fieldset {
+    border: 1px solid #d8dfef;
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.profile-theme-fieldset legend {
+    color: #102246;
+    font-weight: 700;
+    padding: 0 5px;
+}
+
+.theme-preset-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.theme-preset-options label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 0;
+}
+
+.theme-custom-colors {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.theme-color-input {
+    width: 100%;
+    min-height: 42px;
+    padding: 4px;
+}
+
+.theme-bg-preview {
+    margin-top: 10px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #d8dfef;
+    max-width: 240px;
+}
+
+.theme-bg-preview img {
+    width: 100%;
+    display: block;
+    height: 120px;
+    object-fit: cover;
+}
+
+.theme-bg-remove {
+    margin-top: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
 .profile-photo-field input {
     padding: 0;
 }
@@ -418,6 +490,10 @@ textarea {
 
     .profile-header .profile-grid {
         width: 100%;
+    }
+
+    .theme-custom-colors {
+        grid-template-columns: 1fr;
     }
 }
 
