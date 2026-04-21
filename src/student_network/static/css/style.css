@@ -10,6 +10,10 @@ body {
     --app-bg-image: none;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 .page {
     background: #0b1f4d;
 }
