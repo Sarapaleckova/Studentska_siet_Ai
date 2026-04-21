@@ -1629,6 +1629,10 @@ body.modal-open {
     font-weight: 700;
 }
 
+.post-detail-meta .profile-link-inline-text {
+    color: #ffffff;
+}
+
 .group-member-profile .avatar-wrap {
     width: 56px;
     height: 56px;
