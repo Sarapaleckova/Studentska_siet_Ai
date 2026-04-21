@@ -231,6 +231,10 @@ textarea {
     margin-bottom: 14px;
 }
 
+.search-inline-form {
+    position: relative;
+}
+
 .search-input {
     width: 100%;
     padding: 10px;
@@ -246,6 +250,31 @@ textarea {
     outline: none;
     border-color: #5e7fc8;
     box-shadow: 0 0 0 3px rgba(94, 127, 200, 0.16);
+}
+
+.search-input-inline {
+    padding-right: 86px;
+}
+
+.search-inline-button {
+    position: absolute;
+    top: 50%;
+    right: 8px;
+    transform: translateY(-50%);
+    border: 1px solid #c7d1e6;
+    background: #f7f9fc;
+    color: #1a2f5d;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    padding: 5px 10px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.search-inline-button:hover,
+.search-inline-button:focus-visible {
+    background: #eaf0fb;
+    border-color: #9fb2da;
 }
 
 .section-card {
@@ -1550,36 +1579,6 @@ body.modal-open {
     margin-bottom: 12px;
     border: 1px solid #d9e2f3;
     box-shadow: 0 10px 30px rgba(16, 34, 70, 0.08);
-}
-
-.home-search-card {
-    margin-bottom: 16px;
-}
-
-.home-search-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.home-search-label {
-    font-weight: 700;
-    color: #0b1f4d;
-}
-
-.home-search-row {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.home-search-input {
-    flex: 1;
-}
-
-.home-search-button {
-    flex: 0 0 auto;
-    min-width: 110px;
 }
 
 .search-form .actions {

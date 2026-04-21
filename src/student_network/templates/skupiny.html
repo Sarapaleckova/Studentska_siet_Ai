@@ -16,8 +16,9 @@
     {% endif %}
 {% endwith %}
 
-<form class="search-wrap" method="get" action="{{ url_for('aplikacia_skupiny') }}">
-    <input class="search-input" type="text" name="q" value="{{ search_query }}" placeholder="Hľadať skupiny podľa názvu..." aria-label="Hľadať skupiny podľa názvu">
+<form class="search-wrap search-inline-form" method="get" action="{{ url_for('aplikacia_skupiny') }}">
+    <input class="search-input search-input-inline" type="text" name="q" value="{{ search_query }}" placeholder="Hľadať skupiny podľa názvu..." aria-label="Hľadať skupiny podľa názvu">
+    <button class="search-inline-button" type="submit">Hľadať</button>
 </form>
 
 <div class="actions groups-create-action">
