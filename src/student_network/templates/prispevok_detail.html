@@ -14,6 +14,18 @@
 <section class="post-detail-container">
     <a class="post-back-link" href="{{ url_for('aplikacia_domov') }}" aria-label="Späť na príspevky">←</a>
 
+    {% if is_post_owner %}
+        <div class="post-owner-top-controls" id="upravit">
+            <button class="post-owner-top-button" type="button" data-post-edit-toggle>
+                {% if edit_form_open %}Skryť úpravu{% else %}Upraviť príspevok{% endif %}
+            </button>
+            <form method="post" class="post-delete-inline-form" data-post-delete-form>
+                <input type="hidden" name="action_type" value="delete_post">
+                <button class="post-owner-top-button post-owner-top-button-danger" type="submit">Vymazať príspevok</button>
+            </form>
+        </div>
+    {% endif %}
+
     <div class="post-detail-preview">
         {% if post.nahladovy_obrazok_url %}
             <img class="post-detail-large-image" src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}">
@@ -47,16 +59,6 @@
         {% endif %}
 
         {% if is_post_owner %}
-            <div class="post-owner-controls" id="upravit">
-                <button class="btn btn-small" type="button" data-post-edit-toggle>
-                    {% if edit_form_open %}Skryť úpravu{% else %}Upraviť príspevok{% endif %}
-                </button>
-                <form method="post" class="post-delete-inline-form" data-post-delete-form>
-                    <input type="hidden" name="action_type" value="delete_post">
-                    <button class="btn btn-small btn-danger" type="submit">Vymazať príspevok</button>
-                </form>
-            </div>
-
             <form method="post" class="post-edit-form{% if edit_form_open %} is-open{% endif %}" enctype="multipart/form-data" id="post-edit-form">
                 <input type="hidden" name="action_type" value="edit_post">
 
