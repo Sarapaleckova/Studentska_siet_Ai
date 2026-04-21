@@ -213,10 +213,22 @@
         <ul class="profile-post-list">
             {% for post in user_posts %}
                 <li class="profile-post-item">
-                    <a class="profile-post-link" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug) }}">
-                        {{ post.nazov }}
-                    </a>
-                    <span class="profile-post-date">{{ post.datum_vytvorenia }}</span>
+                    <div class="profile-post-row">
+                        <div>
+                            <a class="profile-post-link" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug) }}">
+                                {{ post.nazov }}
+                            </a>
+                            <span class="profile-post-date">{{ post.datum_vytvorenia }}</span>
+                        </div>
+                        {% if not is_public_view %}
+                            <div class="profile-post-actions">
+                                <a class="btn-link profile-post-action" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug, edit=1, _anchor='upravit') }}">Upraviť</a>
+                                <form method="post" action="{{ url_for('aplikacia_prispevok_vymazat', post_id=post.id) }}" class="profile-post-delete-form" data-post-delete-form>
+                                    <button class="btn profile-post-action profile-post-delete" type="submit">Vymazať</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
                 </li>
             {% endfor %}
         </ul>
@@ -272,6 +284,24 @@
 })();
 </script>
 {% endif %}
+
+<script>
+(function () {
+    const deleteForms = document.querySelectorAll('[data-post-delete-form]');
+    if (deleteForms.length === 0) {
+        return;
+    }
+
+    deleteForms.forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            const confirmed = window.confirm('Naozaj chcete tento príspevok vymazať?');
+            if (!confirmed) {
+                event.preventDefault();
+            }
+        });
+    });
+})();
+</script>
 
 {% if edit_mode %}
 <script>

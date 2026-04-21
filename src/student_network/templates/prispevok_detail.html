@@ -46,6 +46,62 @@
             <p class="post-owner-note">Ako autor nemôžeš hodnotiť vlastný príspevok.</p>
         {% endif %}
 
+        {% if is_post_owner %}
+            <div class="post-owner-controls" id="upravit">
+                <button class="btn btn-small" type="button" data-post-edit-toggle>
+                    {% if edit_form_open %}Skryť úpravu{% else %}Upraviť príspevok{% endif %}
+                </button>
+                <form method="post" class="post-delete-inline-form" data-post-delete-form>
+                    <input type="hidden" name="action_type" value="delete_post">
+                    <button class="btn btn-small btn-danger" type="submit">Vymazať príspevok</button>
+                </form>
+            </div>
+
+            <form method="post" class="post-edit-form{% if edit_form_open %} is-open{% endif %}" enctype="multipart/form-data" id="post-edit-form">
+                <input type="hidden" name="action_type" value="edit_post">
+
+                <div class="field">
+                    <label for="edit-nazov">Názov príspevku</label>
+                    <input id="edit-nazov" name="nazov" type="text" maxlength="160" value="{{ edit_values.nazov }}">
+                    <p class="form-error field-error" aria-live="polite">{{ edit_errors.nazov if edit_errors else '' }}</p>
+                </div>
+
+                <div class="field">
+                    <label for="edit-popis">Popis</label>
+                    <textarea id="edit-popis" name="popis" rows="5" maxlength="2000">{{ edit_values.popis }}</textarea>
+                    <p class="form-error field-error" aria-live="polite">{{ edit_errors.popis if edit_errors else '' }}</p>
+                </div>
+
+                <div class="field">
+                    <label for="edit-nahladovy-obrazok">Náhľadový obrázok</label>
+                    <input id="edit-nahladovy-obrazok" name="nahladovy_obrazok" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+                    {% if post.nahladovy_obrazok_url %}
+                        <label class="checkbox-inline">
+                            <input name="remove_nahladovy_obrazok" type="checkbox" value="1" {% if edit_values.remove_nahladovy_obrazok %}checked{% endif %}>
+                            Odstrániť aktuálny obrázok
+                        </label>
+                    {% endif %}
+                    <p class="form-error field-error" aria-live="polite">{{ edit_errors.nahladovy_obrazok if edit_errors else '' }}</p>
+                </div>
+
+                <div class="field">
+                    <label for="edit-subor">Súbor</label>
+                    <input id="edit-subor" name="subor" type="file" accept="{{ post_file_accept }}">
+                    {% if post.subor_url %}
+                        <label class="checkbox-inline">
+                            <input name="remove_subor" type="checkbox" value="1" {% if edit_values.remove_subor %}checked{% endif %}>
+                            Odstrániť aktuálny súbor
+                        </label>
+                    {% endif %}
+                    <p class="form-error field-error" aria-live="polite">{{ edit_errors.subor if edit_errors else '' }}</p>
+                </div>
+
+                <div class="actions post-edit-actions">
+                    <button class="btn" type="submit">Uložiť zmeny</button>
+                </div>
+            </form>
+        {% endif %}
+
         <div class="post-detail-description-wrap">
             <p class="post-detail-description">{{ post.popis if post.popis else 'Bez popisu.' }}</p>
         </div>
@@ -191,6 +247,9 @@
     const closeTargets = modal ? modal.querySelectorAll('[data-comments-modal-close]') : [];
     const ratingCloseTargets = ratingModal ? ratingModal.querySelectorAll('[data-rating-modal-close]') : [];
     const leaveCloseTargets = leaveModal ? leaveModal.querySelectorAll('[data-leave-modal-close]') : [];
+    const editToggleButton = document.querySelector('[data-post-edit-toggle]');
+    const editForm = document.getElementById('post-edit-form');
+    const deleteForms = document.querySelectorAll('[data-post-delete-form]');
 
     if (!modal) {
         return;
@@ -257,6 +316,25 @@
             openLeaveModal();
         });
     }
+
+    if (editToggleButton && editForm) {
+        editToggleButton.addEventListener('click', () => {
+            const isOpen = editForm.classList.toggle('is-open');
+            editToggleButton.textContent = isOpen ? 'Skryť úpravu' : 'Upraviť príspevok';
+            if (isOpen) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search + '#upravit');
+            }
+        });
+    }
+
+    deleteForms.forEach((form) => {
+        form.addEventListener('submit', (event) => {
+            const confirmed = window.confirm('Naozaj chcete tento príspevok vymazať?');
+            if (!confirmed) {
+                event.preventDefault();
+            }
+        });
+    });
 
     openButtons.forEach((button) => {
         button.addEventListener('click', () => {

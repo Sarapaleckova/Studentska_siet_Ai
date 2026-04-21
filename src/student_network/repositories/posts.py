@@ -42,6 +42,37 @@ def create_post(
     return int(cursor.lastrowid)
 
 
+def update_post(
+    post_id: int,
+    nazov: str,
+    popis: str,
+    nahladovy_obrazok: str,
+    subor: str,
+    subor_povodny_nazov: str,
+) -> None:
+    database = get_db()
+    database.execute(
+        """
+        UPDATE posts
+        SET
+            nazov = ?,
+            popis = ?,
+            nahladovy_obrazok = ?,
+            subor = ?,
+            subor_povodny_nazov = ?
+        WHERE id = ?
+        """,
+        (nazov, popis, nahladovy_obrazok, subor, subor_povodny_nazov, post_id),
+    )
+    database.commit()
+
+
+def delete_post(post_id: int) -> None:
+    database = get_db()
+    database.execute("DELETE FROM posts WHERE id = ?", (post_id,))
+    database.commit()
+
+
 def get_all_posts() -> list[Row]:
     database = get_db()
     rows = database.execute(

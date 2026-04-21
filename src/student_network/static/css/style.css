@@ -485,6 +485,41 @@ textarea {
     margin: 0 0 10px 0;
 }
 
+.profile-post-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.profile-post-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.profile-post-action {
+    flex: 0 0 auto;
+    min-width: 0;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+}
+
+.profile-post-delete-form {
+    margin: 0;
+}
+
+.profile-post-delete {
+    background: #d93a3a;
+    color: #ffffff;
+    border-color: #c42f2f;
+}
+
+.profile-post-delete:hover {
+    background: #b92e2e;
+}
+
 .profile-post-link {
     color: #0b1f4d;
     text-decoration: none;
@@ -837,6 +872,57 @@ textarea {
     background: #f3f6ff;
     color: #1b2a4f;
     font-size: 0.95rem;
+}
+
+.post-owner-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.post-delete-inline-form {
+    margin: 0;
+}
+
+.btn-danger {
+    background: #d93a3a;
+    color: #ffffff;
+    border-color: #c42f2f;
+}
+
+.btn-danger:hover {
+    background: #b92e2e;
+}
+
+.post-edit-form {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    background: #f7f9fc;
+    border: 1px solid #d9e2f3;
+    border-radius: 10px;
+    padding: 12px;
+}
+
+.post-edit-form.is-open {
+    display: flex;
+}
+
+.post-edit-actions {
+    margin-top: 0;
+}
+
+.checkbox-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #1b2a4f;
+}
+
+.checkbox-inline input {
+    width: auto;
 }
 
 .post-detail-description-wrap {
@@ -2041,6 +2127,20 @@ body.modal-open {
     .btn-small {
         padding-left: 8px;
         padding-right: 8px;
+    }
+
+    .profile-post-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .profile-post-actions {
+        width: 100%;
+    }
+
+    .profile-post-action {
+        flex: 1;
+        text-align: center;
     }
 
     .role-mode-buttons {

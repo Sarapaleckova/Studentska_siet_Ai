@@ -55,7 +55,7 @@ from student_network.repositories.profiles import (
     replace_user_additional_emails,
     save_profile,
 )
-from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id, search_posts
+from student_network.repositories.posts import create_post, delete_post, get_all_posts, get_post_by_id, get_posts_by_author_id, search_posts, update_post
 from student_network.repositories.ratings import get_user_post_rating, upsert_post_rating
 from student_network.repositories.users import get_user_by_id, search_users_by_name, update_user_name
 from student_network.services.auth_service import register_user, validate_login
@@ -88,6 +88,15 @@ def _save_uploaded_file(uploaded_file, target_dir: Path, user_id: int) -> tuple[
     target_path = target_dir / unique_name
     uploaded_file.save(target_path)
     return unique_name, original_name
+
+
+def _delete_uploaded_static_file(static_folder: str | None, relative_path: str) -> None:
+    if not static_folder or not relative_path:
+        return
+
+    file_path = Path(static_folder) / relative_path
+    if file_path.exists() and file_path.is_file():
+        file_path.unlink()
 
 
 def _slugify(text: str) -> str:
@@ -1267,11 +1276,127 @@ def register_routes(app: Flask) -> None:
             'text': '',
             'parent_comment_id': '',
         }
+        edit_errors: dict[str, str] = {}
+        edit_values = {
+            'nazov': post_row['nazov'],
+            'popis': post_row['popis'],
+            'remove_nahladovy_obrazok': False,
+            'remove_subor': False,
+        }
+        edit_form_open = request.args.get('edit') == '1'
 
         if request.method == 'POST':
             action_type = request.form.get('action_type', '')
 
-            if action_type == 'rating':
+            if action_type == 'edit_post':
+                if not is_owner:
+                    abort(403)
+
+                edit_values['nazov'] = request.form.get('nazov', '').strip()
+                edit_values['popis'] = request.form.get('popis', '').strip()
+                edit_values['remove_nahladovy_obrazok'] = request.form.get('remove_nahladovy_obrazok') == '1'
+                edit_values['remove_subor'] = request.form.get('remove_subor') == '1'
+
+                if not edit_values['nazov']:
+                    edit_errors['nazov'] = 'Názov príspevku je povinný.'
+                elif len(edit_values['nazov']) > 160:
+                    edit_errors['nazov'] = 'Názov môže mať najviac 160 znakov.'
+
+                if len(edit_values['popis']) > 2000:
+                    edit_errors['popis'] = 'Popis môže mať najviac 2000 znakov.'
+
+                image_relative_path = str(post_row['nahladovy_obrazok'] or '')
+                new_image_relative_path = ''
+                uploaded_image = request.files.get('nahladovy_obrazok')
+                if uploaded_image and uploaded_image.filename:
+                    image_filename = secure_filename(uploaded_image.filename)
+                    image_extension = Path(image_filename).suffix.lower()
+                    if image_extension not in ALLOWED_POST_IMAGE_EXTENSIONS:
+                        edit_errors['nahladovy_obrazok'] = 'Povolené formáty obrázka: PNG, JPG, JPEG, WEBP, GIF.'
+                    else:
+                        stored_image_name, _ = _save_uploaded_file(
+                            uploaded_image,
+                            Path(app.config['POST_IMAGE_UPLOAD_DIR']),
+                            int(g.user['id']),
+                        )
+                        new_image_relative_path = f"uploads/post_images/{stored_image_name}"
+
+                file_relative_path = str(post_row['subor'] or '')
+                file_original_name = str(post_row['subor_povodny_nazov'] or '')
+                new_file_relative_path = ''
+                new_file_original_name = ''
+                uploaded_file = request.files.get('subor')
+                if uploaded_file and uploaded_file.filename:
+                    file_name = secure_filename(uploaded_file.filename)
+                    file_extension = Path(file_name).suffix.lower()
+                    if file_extension not in ALLOWED_POST_FILE_EXTENSIONS:
+                        edit_errors['subor'] = 'Nepodporovaný typ súboru.'
+                    else:
+                        stored_file_name, new_file_original_name = _save_uploaded_file(
+                            uploaded_file,
+                            Path(app.config['POST_FILE_UPLOAD_DIR']),
+                            int(g.user['id']),
+                        )
+                        new_file_relative_path = f"uploads/post_files/{stored_file_name}"
+
+                if edit_errors:
+                    if new_image_relative_path:
+                        _delete_uploaded_static_file(app.static_folder, new_image_relative_path)
+                    if new_file_relative_path:
+                        _delete_uploaded_static_file(app.static_folder, new_file_relative_path)
+                    edit_form_open = True
+                else:
+                    if new_image_relative_path:
+                        if image_relative_path:
+                            _delete_uploaded_static_file(app.static_folder, image_relative_path)
+                        image_relative_path = new_image_relative_path
+                    elif edit_values['remove_nahladovy_obrazok'] and image_relative_path:
+                        _delete_uploaded_static_file(app.static_folder, image_relative_path)
+                        image_relative_path = ''
+
+                    if new_file_relative_path:
+                        if file_relative_path:
+                            _delete_uploaded_static_file(app.static_folder, file_relative_path)
+                        file_relative_path = new_file_relative_path
+                        file_original_name = new_file_original_name
+                    elif edit_values['remove_subor'] and file_relative_path:
+                        _delete_uploaded_static_file(app.static_folder, file_relative_path)
+                        file_relative_path = ''
+                        file_original_name = ''
+
+                    update_post(
+                        post_id=post_id,
+                        nazov=edit_values['nazov'],
+                        popis=edit_values['popis'],
+                        nahladovy_obrazok=image_relative_path,
+                        subor=file_relative_path,
+                        subor_povodny_nazov=file_original_name,
+                    )
+                    flash('Príspevok bol upravený.', 'success')
+                    return redirect(
+                        url_for(
+                            'aplikacia_prispevok_detail',
+                            post_id=post_id,
+                            post_slug=_slugify(edit_values['nazov']),
+                        )
+                    )
+
+            elif action_type == 'delete_post':
+                if not is_owner:
+                    abort(403)
+
+                image_relative_path = str(post_row['nahladovy_obrazok'] or '')
+                file_relative_path = str(post_row['subor'] or '')
+                if image_relative_path:
+                    _delete_uploaded_static_file(app.static_folder, image_relative_path)
+                if file_relative_path:
+                    _delete_uploaded_static_file(app.static_folder, file_relative_path)
+
+                delete_post(post_id)
+                flash('Príspevok bol vymazaný.', 'success')
+                return redirect(url_for('aplikacia_domov'))
+
+            elif action_type == 'rating':
                 if is_owner:
                     flash('Autor príspevku nemôže hodnotiť vlastný príspevok.', 'error')
                     return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
@@ -1289,7 +1414,7 @@ def register_routes(app: Flask) -> None:
 
                 return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug, _anchor='hodnotenie'))
 
-            if action_type == 'comment':
+            elif action_type == 'comment':
                 comment_text = request.form.get('text', '').strip()
                 parent_comment_raw = request.form.get('parent_comment_id', '').strip()
                 comment_form_values['text'] = comment_text
@@ -1325,6 +1450,11 @@ def register_routes(app: Flask) -> None:
                 flash('Neplatná akcia.', 'error')
                 return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
 
+        post_row = get_post_by_id(post_id)
+        if post_row is None:
+            flash('Príspevok sa nenašiel.', 'error')
+            return redirect(url_for('aplikacia_domov'))
+
         current_user_rating = None if is_owner else get_user_post_rating(post_id=post_id, user_id=int(g.user['id']))
         comments_tree = _build_comment_tree(get_post_comments(post_id))
 
@@ -1350,12 +1480,38 @@ def register_routes(app: Flask) -> None:
             active_tab='domov',
             post=post,
             is_post_owner=is_owner,
+            post_file_accept=POST_FILE_ACCEPT_VALUE,
             current_user_rating=current_user_rating,
             comments_tree=comments_tree,
             comment_errors=comment_errors,
             comment_form_values=comment_form_values,
             comments_modal_open=bool(comment_errors),
+            edit_errors=edit_errors,
+            edit_values=edit_values,
+            edit_form_open=edit_form_open,
         )
+
+    @app.route(f'{APP_BASE_PATH}/prispevky/<int:post_id>/vymazat', methods=['POST'])
+    @login_required
+    def aplikacia_prispevok_vymazat(post_id: int) -> str:
+        post_row = get_post_by_id(post_id)
+        if post_row is None:
+            flash('Príspevok sa nenašiel.', 'error')
+            return redirect(url_for('aplikacia_profil'))
+
+        if int(post_row['author_id']) != int(g.user['id']):
+            abort(403)
+
+        image_relative_path = str(post_row['nahladovy_obrazok'] or '')
+        file_relative_path = str(post_row['subor'] or '')
+        if image_relative_path:
+            _delete_uploaded_static_file(app.static_folder, image_relative_path)
+        if file_relative_path:
+            _delete_uploaded_static_file(app.static_folder, file_relative_path)
+
+        delete_post(post_id)
+        flash('Príspevok bol vymazaný.', 'success')
+        return redirect(url_for('aplikacia_profil'))
 
     @app.route(f'{APP_BASE_PATH}/profil', methods=['GET', 'POST'])
     @login_required
