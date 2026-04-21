@@ -8,32 +8,24 @@
 <p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
 {% endif %}
 
-<section class="section-card search-card">
-    <form method="get" action="{{ url_for('aplikacia_hladat') }}" class="search-form">
-        <div class="search-wrap">
-            <input class="search-input" name="q" type="text" value="{{ query }}" placeholder="Hľadať skupiny, členov alebo príspevky...">
-        </div>
-
-        <div class="search-filter-row" role="group" aria-label="Filtre vyhľadávania">
-            <label class="search-filter-item">
-                <input type="checkbox" name="typ" value="profiles" {% if 'profiles' in selected_filters %}checked{% endif %}>
-                <span>Profily</span>
-            </label>
-            <label class="search-filter-item">
-                <input type="checkbox" name="typ" value="groups" {% if 'groups' in selected_filters %}checked{% endif %}>
-                <span>Skupiny</span>
-            </label>
-            <label class="search-filter-item">
-                <input type="checkbox" name="typ" value="posts" {% if 'posts' in selected_filters %}checked{% endif %}>
-                <span>Príspevky</span>
-            </label>
-        </div>
-
-        <div class="actions">
-            <button class="btn" type="submit">Vyhľadať</button>
-        </div>
-    </form>
-</section>
+<form id="search-form-inline" class="search-wrap search-inline-form search-inline-form-wide" method="get" action="{{ url_for('aplikacia_hladat') }}" aria-label="Vyhľadávanie">
+    <input class="search-input search-input-inline" name="q" type="text" value="{{ query }}" placeholder="Hľadať skupiny, členov alebo príspevky..." aria-label="Vyhľadávanie v aplikácii">
+    <button class="search-inline-button" type="submit">Hľadať</button>
+    <div class="search-filter-row search-filter-row-plain" role="group" aria-label="Filtre vyhľadávania">
+        <label class="search-filter-item">
+            <input type="checkbox" name="typ" value="profiles" {% if 'profiles' in selected_filters %}checked{% endif %}>
+            <span>Profily</span>
+        </label>
+        <label class="search-filter-item">
+            <input type="checkbox" name="typ" value="groups" {% if 'groups' in selected_filters %}checked{% endif %}>
+            <span>Skupiny</span>
+        </label>
+        <label class="search-filter-item">
+            <input type="checkbox" name="typ" value="posts" {% if 'posts' in selected_filters %}checked{% endif %}>
+            <span>Príspevky</span>
+        </label>
+    </div>
+</form>
 
 {% if query %}
     {% if 'profiles' in selected_filters %}
@@ -135,9 +127,5 @@
         {% endif %}
     </section>
     {% endif %}
-{% else %}
-<section class="section-card search-results-card">
-    <p>Zadajte výraz a vyberte, ktoré kategórie chcete prehľadať.</p>
-</section>
 {% endif %}
 {% endblock %}
