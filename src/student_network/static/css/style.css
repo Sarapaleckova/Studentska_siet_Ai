@@ -235,8 +235,17 @@ textarea {
     width: 100%;
     padding: 10px;
     border-radius: 8px;
-    border: none;
+    border: 1px solid #c7d1e6;
     box-sizing: border-box;
+    background: #ffffff;
+    color: #102246;
+    box-shadow: inset 0 1px 2px rgba(16, 34, 70, 0.06);
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #5e7fc8;
+    box-shadow: 0 0 0 3px rgba(94, 127, 200, 0.16);
 }
 
 .section-card {
@@ -1539,10 +1548,50 @@ body.modal-open {
 
 .search-card {
     margin-bottom: 12px;
+    border: 1px solid #d9e2f3;
+    box-shadow: 0 10px 30px rgba(16, 34, 70, 0.08);
+}
+
+.home-search-card {
+    margin-bottom: 16px;
+}
+
+.home-search-form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.home-search-label {
+    font-weight: 700;
+    color: #0b1f4d;
+}
+
+.home-search-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.home-search-input {
+    flex: 1;
+}
+
+.home-search-button {
+    flex: 0 0 auto;
+    min-width: 110px;
 }
 
 .search-form .actions {
     margin-top: 10px;
+}
+
+.search-form {
+    padding: 14px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8fc 100%);
+    border: 1px solid #d9e2f3;
+    box-shadow: 0 10px 24px rgba(16, 34, 70, 0.08);
 }
 
 .search-filter-row {

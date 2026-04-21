@@ -8,6 +8,16 @@
 <p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
 {% endif %}
 
+<section class="section-card home-search-card" aria-label="Vyhľadávanie">
+    <form method="get" action="{{ url_for('aplikacia_hladat') }}" class="home-search-form">
+        <label class="home-search-label" for="home-search-input">Vyhľadávanie</label>
+        <div class="home-search-row">
+            <input id="home-search-input" class="search-input home-search-input" name="q" type="text" placeholder="Hľadať skupiny, profily alebo príspevky...">
+            <button class="btn home-search-button" type="submit">Hľadať</button>
+        </div>
+    </form>
+</section>
+
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
