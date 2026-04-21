@@ -1,5 +1,6 @@
 """Profile repository functions."""
 
+from datetime import datetime
 from sqlite3 import Row
 
 from student_network.db import get_db
@@ -103,4 +104,38 @@ def save_profile(
             theme_bg_image,
         ),
     )
+    database.commit()
+
+
+def get_user_additional_emails(user_id: int) -> list[str]:
+    database = get_db()
+    rows = database.execute(
+        """
+        SELECT email
+        FROM user_additional_emails
+        WHERE user_id = ?
+        ORDER BY email COLLATE NOCASE ASC
+        """,
+        (user_id,),
+    ).fetchall()
+    return [str(row['email']) for row in rows]
+
+
+def replace_user_additional_emails(user_id: int, emails: list[str]) -> None:
+    database = get_db()
+    database.execute(
+        "DELETE FROM user_additional_emails WHERE user_id = ?",
+        (user_id,),
+    )
+
+    now = datetime.utcnow().isoformat(timespec='seconds')
+    for email in emails:
+        database.execute(
+            """
+            INSERT INTO user_additional_emails (user_id, email, created_at)
+            VALUES (?, ?, ?)
+            """,
+            (user_id, email, now),
+        )
+
     database.commit()

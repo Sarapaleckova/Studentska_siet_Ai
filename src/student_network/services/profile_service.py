@@ -1,7 +1,11 @@
 """Profile service helpers."""
 
 from collections.abc import Mapping
+import re
 from sqlite3 import Row
+
+
+EMAIL_PATTERN = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
 
 
 def profile_values_from_row(profile: Row | None) -> dict[str, str]:
@@ -46,6 +50,7 @@ def validate_profile(form: Mapping[str, str], current_user: Mapping[str, str] | 
         'skola': form.get('skola', '').strip(),
         'rocnik_studia': form.get('rocnik_studia', '').strip(),
         'popis': form.get('popis', '').strip(),
+        'additional_emails': form.get('additional_emails', '').strip(),
         'theme_preset': form.get('theme_preset', 'default').strip(),
         'theme_bg_color': form.get('theme_bg_color', '#0b1f4d').strip(),
         'theme_nav_color': form.get('theme_nav_color', '#071433').strip(),
@@ -72,6 +77,27 @@ def validate_profile(form: Mapping[str, str], current_user: Mapping[str, str] | 
 
     if len(values['popis']) > 500:
         errors['popis'] = 'Popis môže mať najviac 500 znakov.'
+
+    parsed_additional_emails: list[str] = []
+    seen_additional_emails: set[str] = set()
+    for raw_line in values['additional_emails'].splitlines():
+        email_value = raw_line.strip()
+        if not email_value:
+            continue
+
+        normalized_email = email_value.casefold()
+        if normalized_email in seen_additional_emails:
+            errors['additional_emails'] = 'Každá ďalšia e-mailová adresa môže byť uvedená iba raz.'
+            break
+
+        if len(email_value) > 254 or not EMAIL_PATTERN.fullmatch(email_value):
+            errors['additional_emails'] = 'Niektorá z ďalších e-mailových adries má neplatný formát.'
+            break
+
+        parsed_additional_emails.append(email_value)
+        seen_additional_emails.add(normalized_email)
+
+    values['additional_emails'] = '\n'.join(parsed_additional_emails)
 
     if values['theme_preset'] not in {'default', 'pink', 'ocean', 'custom'}:
         errors['theme_preset'] = 'Neplatný výber témy.'

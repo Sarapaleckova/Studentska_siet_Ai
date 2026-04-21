@@ -32,6 +32,14 @@
             <div><strong>Meno:</strong> {{ profile_user['meno'] }}</div>
             <div><strong>Priezvisko:</strong> {{ profile_user['priezvisko'] }}</div>
             <div><strong>E-mail:</strong> {{ profile_user['email'] }}</div>
+            <div>
+                <strong>Ďalšie e-maily:</strong>
+                {% if additional_emails %}
+                    {{ additional_emails | join(', ') }}
+                {% else %}
+                    Neuvedené
+                {% endif %}
+            </div>
             <div><strong>Dátum registrácie:</strong> {{ profile_user['datum_vytvorenia_uctu'].replace('T', ' ') }}</div>
         </div>
     </div>
@@ -71,7 +79,7 @@
         <div class="profile-grid">
             <div><strong>Škola na ktorej študuje:</strong> {{ profile_values.skola if profile_values.skola else 'Neuvedené' }}</div>
             <div><strong>Ročník štúdia:</strong> {{ profile_values.rocnik_studia if profile_values.rocnik_studia else 'Neuvedené' }}</div>
-            <div class="profile-description"><strong>Dobrovoľný popis:</strong> {{ profile_values.popis if profile_values.popis else 'Neuvedené' }}</div>
+            <div class="profile-description"><strong>Popis:</strong> {{ profile_values.popis if profile_values.popis else 'Neuvedené' }}</div>
         </div>
         {% if not is_public_view %}
             <div class="actions profile-actions">
@@ -101,9 +109,16 @@
                 <p class="form-error field-error" aria-live="polite">{{ errors.rocnik_studia if errors else '' }}</p>
             </div>
             <div class="field">
-                <label for="popis">Dobrovoľný popis</label>
+                <label for="popis">Popis</label>
                 <textarea id="popis" name="popis" rows="5">{{ values.popis }}</textarea>
                 <p class="form-error field-error" aria-live="polite">{{ errors.popis if errors else '' }}</p>
+            </div>
+
+            <div class="field">
+                <label for="additional_emails">Ďalšie e-mailové adresy</label>
+                <textarea id="additional_emails" name="additional_emails" rows="4" placeholder="jeden@email.sk&#10;druhy@email.sk">{{ values.additional_emails if values.additional_emails else '' }}</textarea>
+                <p class="event-input-hint">Zadajte jednu e-mailovú adresu na každý riadok.</p>
+                <p class="form-error field-error" aria-live="polite">{{ errors.additional_emails if errors else '' }}</p>
             </div>
 
             <fieldset class="field profile-theme-fieldset">

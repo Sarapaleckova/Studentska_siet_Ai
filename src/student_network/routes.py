@@ -49,7 +49,12 @@ from student_network.repositories.groups import (
     update_group,
     update_member_role,
 )
-from student_network.repositories.profiles import get_profile_by_user_id, save_profile
+from student_network.repositories.profiles import (
+    get_profile_by_user_id,
+    get_user_additional_emails,
+    replace_user_additional_emails,
+    save_profile,
+)
 from student_network.repositories.posts import create_post, get_all_posts, get_post_by_id, get_posts_by_author_id, search_posts
 from student_network.repositories.ratings import get_user_post_rating, upsert_post_rating
 from student_network.repositories.users import get_user_by_id, search_users_by_name, update_user_name
@@ -1370,8 +1375,10 @@ def register_routes(app: Flask) -> None:
             for row in user_groups_rows
         ]
         profile = get_profile_by_user_id(int(g.user['id']))
+        additional_emails = get_user_additional_emails(int(g.user['id']))
         profile_values = profile_values_from_row(profile)
         values = profile_form_values(g.user, profile)
+        values['additional_emails'] = '\n'.join(additional_emails)
         profile_photo_path = profile_values['profilova_fotka']
         theme_bg_image_path = profile_values['theme_bg_image']
 
@@ -1458,6 +1465,10 @@ def register_routes(app: Flask) -> None:
                     theme_nav_color=values['theme_nav_color'],
                     theme_bg_image=theme_bg_image_path,
                 )
+                replace_user_additional_emails(
+                    user_id=int(g.user['id']),
+                    emails=[line.strip() for line in values.get('additional_emails', '').splitlines() if line.strip()],
+                )
                 flash('Profil bol úspešne uložený.', 'success')
                 return redirect(url_for('aplikacia_profil'))
 
@@ -1476,6 +1487,7 @@ def register_routes(app: Flask) -> None:
             is_public_view=False,
             user_posts=user_posts,
             user_groups=user_groups,
+            additional_emails=additional_emails,
             theme_bg_image_url=theme_bg_image_url,
             theme_presets=THEME_PRESETS,
         )
@@ -1492,6 +1504,7 @@ def register_routes(app: Flask) -> None:
             return redirect(url_for('aplikacia_hladat'))
 
         profile = get_profile_by_user_id(user_id)
+        additional_emails = get_user_additional_emails(user_id)
         profile_values = profile_values_from_row(profile)
 
         user_posts_rows = get_posts_by_author_id(user_id)
@@ -1532,6 +1545,7 @@ def register_routes(app: Flask) -> None:
             is_public_view=True,
             user_posts=user_posts,
             user_groups=user_groups,
+            additional_emails=additional_emails,
             theme_bg_image_url=None,
             theme_presets=THEME_PRESETS,
         )
