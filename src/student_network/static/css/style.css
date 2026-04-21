@@ -1574,6 +1574,12 @@ body.modal-open {
     color: inherit;
 }
 
+.search-post-title-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
 .search-member-link {
     text-decoration: none;
     color: inherit;
@@ -1601,6 +1607,26 @@ body.modal-open {
     display: flex;
     gap: 10px;
     align-items: flex-start;
+}
+
+.profile-link-inline {
+    display: inline-flex;
+    gap: 10px;
+    align-items: flex-start;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+}
+
+.profile-link-inline:hover .group-member-name,
+.profile-link-inline:focus-visible .group-member-name {
+    text-decoration: underline;
+}
+
+.profile-link-inline-text {
+    display: inline;
+    color: #0b1f4d;
+    font-weight: 700;
 }
 
 .group-member-profile .avatar-wrap {

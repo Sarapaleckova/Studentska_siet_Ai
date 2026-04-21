@@ -159,15 +159,19 @@
                     {% for member in members %}
                         <article class="group-member-item">
                             <div class="group-member-profile">
-                                <div class="avatar-wrap" aria-hidden="true">
-                                    {% if member.photo_url %}
-                                        <img class="avatar-image" src="{{ member.photo_url }}" alt="Profilová fotka {{ member.full_name }}">
-                                    {% else %}
-                                        <div class="avatar-fallback"></div>
-                                    {% endif %}
-                                </div>
+                                <a class="profile-link-inline" href="{{ member.profile_url }}">
+                                    <div class="avatar-wrap" aria-hidden="true">
+                                        {% if member.photo_url %}
+                                            <img class="avatar-image" src="{{ member.photo_url }}" alt="Profilová fotka {{ member.full_name }}">
+                                        {% else %}
+                                            <div class="avatar-fallback"></div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <p class="group-member-name">{{ member.full_name }}{% if member.is_current_user %} (Vy){% endif %}</p>
+                                    </div>
+                                </a>
                                 <div>
-                                    <p class="group-member-name">{{ member.full_name }}{% if member.is_current_user %} (Vy){% endif %}</p>
                                     <p class="group-member-meta">
                                         Rola:
                                         {% if member.role == 'admin' %}
@@ -203,15 +207,19 @@
                         {% for pending in pending_requests %}
                             <article class="group-member-item">
                                 <div class="group-member-profile">
-                                    <div class="avatar-wrap" aria-hidden="true">
-                                        {% if pending.photo_url %}
-                                            <img class="avatar-image" src="{{ pending.photo_url }}" alt="Profilová fotka {{ pending.full_name }}">
-                                        {% else %}
-                                            <div class="avatar-fallback"></div>
-                                        {% endif %}
-                                    </div>
+                                    <a class="profile-link-inline" href="{{ pending.profile_url }}">
+                                        <div class="avatar-wrap" aria-hidden="true">
+                                            {% if pending.photo_url %}
+                                                <img class="avatar-image" src="{{ pending.photo_url }}" alt="Profilová fotka {{ pending.full_name }}">
+                                            {% else %}
+                                                <div class="avatar-fallback"></div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            <p class="group-member-name">{{ pending.full_name }}</p>
+                                        </div>
+                                    </a>
                                     <div>
-                                        <p class="group-member-name">{{ pending.full_name }}</p>
                                         <p class="group-member-meta">Žiadosť odoslaná: {{ pending.requested_at }}</p>
                                     </div>
                                 </div>

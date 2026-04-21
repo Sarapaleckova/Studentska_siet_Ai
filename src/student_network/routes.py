@@ -224,6 +224,12 @@ def _build_theme_context(profile_row) -> dict[str, str]:
     }
 
 
+def _profile_url_for_user(user_id: int) -> str:
+    if g.get('user') is not None and int(g.user['id']) == int(user_id):
+        return url_for('aplikacia_profil')
+    return url_for('aplikacia_profil_verejny', user_id=user_id)
+
+
 def _parse_group_month(raw_value: str) -> tuple[int, int]:
     today = date.today()
     if not raw_value or not re.fullmatch(r'\d{4}-\d{2}', raw_value):
@@ -385,7 +391,10 @@ def register_routes(app: Flask) -> None:
                 'id': row['id'],
                 'nazov': row['nazov'],
                 'post_slug': _slugify(row['nazov']),
+                'author_id': int(row['author_id']),
                 'autor': f"{row['author_meno']} {row['author_priezvisko']}",
+                'author_profile_url': _profile_url_for_user(int(row['author_id'])),
+                'author_is_current_user': int(row['author_id']) == int(g.user['id']),
                 'subor_povodny_nazov': row['subor_povodny_nazov'],
                 'typ_suboru': _post_file_type_from_name(row['subor_povodny_nazov']) if row['subor_povodny_nazov'] else 'bez súboru',
                 'average_rating': float(row['average_rating'] or 0),
@@ -598,6 +607,7 @@ def register_routes(app: Flask) -> None:
                 'joined_at': _format_datetime_eu(row['joined_at']) if row['joined_at'] else '',
                 'photo_url': url_for('static', filename=row['profilova_fotka']) if row['profilova_fotka'] else None,
                 'is_current_user': int(row['user_id']) == int(g.user['id']),
+                'profile_url': _profile_url_for_user(int(row['user_id'])),
             }
             for row in member_rows
         ]
@@ -609,6 +619,7 @@ def register_routes(app: Flask) -> None:
                 'full_name': f"{row['meno']} {row['priezvisko']}",
                 'requested_at': _format_datetime_eu(row['requested_at']),
                 'photo_url': url_for('static', filename=row['profilova_fotka']) if row['profilova_fotka'] else None,
+                'profile_url': _profile_url_for_user(int(row['user_id'])),
             }
             for row in pending_rows
         ]
@@ -1129,6 +1140,8 @@ def register_routes(app: Flask) -> None:
                         'full_name': f"{row['meno']} {row['priezvisko']}",
                         'email': row['email'],
                         'photo_url': url_for('static', filename=row['profilova_fotka']) if row['profilova_fotka'] else None,
+                        'profile_url': _profile_url_for_user(int(row['id'])),
+                        'is_current_user': int(row['id']) == int(g.user['id']),
                     }
                     for row in member_rows
                 ]
@@ -1155,6 +1168,8 @@ def register_routes(app: Flask) -> None:
                         'nazov': row['nazov'],
                         'popis': row['popis'],
                         'author': f"{row['author_meno']} {row['author_priezvisko']}",
+                        'author_profile_url': _profile_url_for_user(int(row['author_id'])),
+                        'author_is_current_user': int(row['author_id']) == int(g.user['id']),
                         'post_slug': _slugify(row['nazov']),
                     }
                     for row in post_rows
@@ -1462,7 +1477,10 @@ def register_routes(app: Flask) -> None:
             'id': post_row['id'],
             'nazov': post_row['nazov'],
             'popis': post_row['popis'],
+            'author_id': int(post_row['author_id']),
             'autor': f"{post_row['author_meno']} {post_row['author_priezvisko']}",
+            'author_profile_url': _profile_url_for_user(int(post_row['author_id'])),
+            'author_is_current_user': int(post_row['author_id']) == int(g.user['id']),
             'datum_vytvorenia': _format_datetime_eu(post_row['datum_vytvorenia']),
             'nahladovy_obrazok_url': url_for('static', filename=post_row['nahladovy_obrazok']) if post_row['nahladovy_obrazok'] else None,
             'subor_url': url_for('static', filename=post_row['subor']) if post_row['subor'] else None,

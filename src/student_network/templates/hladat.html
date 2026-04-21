@@ -116,13 +116,18 @@
         {% if posts %}
             <div class="group-member-list">
                 {% for post in posts %}
-                    <a class="group-member-item search-post-item" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug) }}">
-                        <p class="group-member-name">{{ post.nazov }}</p>
-                        <p class="group-member-meta">Autor: {{ post.author }}</p>
+                    <article class="group-member-item search-post-item">
+                        <a class="search-post-title-link" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug) }}">
+                            <p class="group-member-name">{{ post.nazov }}</p>
+                        </a>
+                        <p class="group-member-meta">
+                            Autor:
+                            <a class="profile-link-inline profile-link-inline-text" href="{{ post.author_profile_url }}">{{ post.author }}{% if post.author_is_current_user %} (Vy){% endif %}</a>
+                        </p>
                         {% if post.popis %}
                             <p class="group-tab-note">{{ post.popis }}</p>
                         {% endif %}
-                    </a>
+                    </article>
                 {% endfor %}
             </div>
         {% else %}

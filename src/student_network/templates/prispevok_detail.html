@@ -38,7 +38,7 @@
         <h1 class="post-detail-title">{{ post.nazov }}</h1>
         
         <div class="post-detail-meta">
-            <p class="post-meta-item"><strong>Autor:</strong> {{ post.autor }}</p>
+            <p class="post-meta-item"><strong>Autor:</strong> <a class="profile-link-inline profile-link-inline-text" href="{{ post.author_profile_url }}">{{ post.autor }}{% if post.author_is_current_user %} (Vy){% endif %}</a></p>
             <p class="post-meta-item"><strong>Dátum pridania:</strong> {{ post.datum_vytvorenia }}</p>
             <p class="post-meta-item"><strong>Typ súboru:</strong> {{ post.typ_suboru }}</p>
         </div>
