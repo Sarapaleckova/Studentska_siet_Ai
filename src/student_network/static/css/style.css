@@ -2250,7 +2250,7 @@ body.modal-open {
     right: 0;
     bottom: 0;
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.22);
     background: var(--app-nav-color);

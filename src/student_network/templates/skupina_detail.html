@@ -28,7 +28,7 @@
     {% endwith %}
 
     <main class="group-detail-main" id="group-detail-main-content">
-        <section class="section-card group-tab-panel group-main-panel {% if active_detail_tab == 'hlavna' %}active{% endif %}" data-tab-panel="hlavna" {% if active_detail_tab != 'hlavna' %}hidden{% endif %}>
+        <section class="section-card group-main-panel" {% if active_detail_tab != 'hlavna' %}hidden{% endif %}>
             <div class="group-main-summary">
                 <div>
                     <h2>Hlavná stránka skupiny</h2>
@@ -409,7 +409,6 @@
     </div>
 
     <nav class="group-bottom-nav" aria-label="Sekcie detailu skupiny">
-        <button class="group-nav-item {% if active_detail_tab == 'hlavna' %}active{% endif %}" type="button" data-tab-target="hlavna">Hlavná</button>
         <button class="group-nav-item {% if active_detail_tab == 'zdielat' %}active{% endif %}" type="button" data-tab-target="zdielat">Zdieľať</button>
         <button class="group-nav-item {% if active_detail_tab == 'notifikacie' %}active{% endif %}" type="button" data-tab-target="notifikacie">Notifikácie</button>
         <button class="group-nav-item {% if active_detail_tab == 'kalendar' %}active{% endif %}" type="button" data-tab-target="kalendar">Kalendár</button>
@@ -502,7 +501,7 @@
             return;
         }
 
-        const allowedTabs = ['hlavna', 'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'];
+        const allowedTabs = ['zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'];
         if (allowedTabs.indexOf(tabName) === -1) {
             return;
         }
