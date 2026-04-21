@@ -122,17 +122,6 @@
     </div>
 </section>
 
-<section class="comments-modal" id="leave-modal" aria-hidden="true">
-    <div class="comments-modal-backdrop" data-leave-modal-close></div>
-    <div class="comments-modal-panel leave-modal-panel" role="dialog" aria-modal="true" aria-labelledby="leave-modal-title">
-        <h2 id="leave-modal-title">Naozaj chcete odísť?</h2>
-        <div class="actions leave-confirm-actions">
-            <a class="btn" href="{{ url_for('aplikacia_domov') }}">Áno</a>
-            <button class="btn" type="button" data-leave-modal-close>Zrušiť</button>
-        </div>
-    </div>
-</section>
-
 {% if not is_post_owner %}
 <section class="rating-modal" id="rating-modal" aria-hidden="true">
     <div class="comments-modal-backdrop" data-rating-modal-close></div>
@@ -242,13 +231,11 @@
 (function () {
     const modal = document.getElementById('comments-modal');
     const ratingModal = document.getElementById('rating-modal');
-    const leaveModal = document.getElementById('leave-modal');
     const backLink = document.querySelector('.post-back-link');
     const openButtons = document.querySelectorAll('[data-comments-modal-open]');
     const openRatingButtons = document.querySelectorAll('[data-rating-modal-open]');
     const closeTargets = modal ? modal.querySelectorAll('[data-comments-modal-close]') : [];
     const ratingCloseTargets = ratingModal ? ratingModal.querySelectorAll('[data-rating-modal-close]') : [];
-    const leaveCloseTargets = leaveModal ? leaveModal.querySelectorAll('[data-leave-modal-close]') : [];
     const editToggleButton = document.querySelector('[data-post-edit-toggle]');
     const editForm = document.getElementById('post-edit-form');
     const deleteForms = document.querySelectorAll('[data-post-delete-form]');
@@ -292,33 +279,6 @@
         document.body.classList.remove('modal-open');
     };
 
-    const openLeaveModal = () => {
-        if (!leaveModal) {
-            return;
-        }
-
-        leaveModal.classList.add('is-open');
-        leaveModal.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('modal-open');
-    };
-
-    const closeLeaveModal = () => {
-        if (!leaveModal) {
-            return;
-        }
-
-        leaveModal.classList.remove('is-open');
-        leaveModal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('modal-open');
-    };
-
-    if (backLink) {
-        backLink.addEventListener('click', (event) => {
-            event.preventDefault();
-            openLeaveModal();
-        });
-    }
-
     if (editToggleButton && editForm) {
         editToggleButton.addEventListener('click', () => {
             const isOpen = editForm.classList.toggle('is-open');
@@ -357,10 +317,6 @@
         target.addEventListener('click', closeRatingModal);
     });
 
-    leaveCloseTargets.forEach((target) => {
-        target.addEventListener('click', closeLeaveModal);
-    });
-
     modal.addEventListener('click', (event) => {
         if (event.target === modal) {
             closeModal();
@@ -375,23 +331,12 @@
         });
     }
 
-    if (leaveModal) {
-        leaveModal.addEventListener('click', (event) => {
-            if (event.target === leaveModal) {
-                closeLeaveModal();
-            }
-        });
-    }
-
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && modal.classList.contains('is-open')) {
             closeModal();
         }
         if (event.key === 'Escape' && ratingModal && ratingModal.classList.contains('is-open')) {
             closeRatingModal();
-        }
-        if (event.key === 'Escape' && leaveModal && leaveModal.classList.contains('is-open')) {
-            closeLeaveModal();
         }
     });
 
