@@ -8,9 +8,11 @@
 <p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
 {% endif %}
 
-<form id="search-form-inline" class="search-wrap search-inline-form search-inline-form-wide" method="get" action="{{ url_for('aplikacia_hladat') }}" aria-label="Vyhľadávanie">
-    <input class="search-input search-input-inline" name="q" type="text" value="{{ query }}" placeholder="Hľadať skupiny, členov alebo príspevky..." aria-label="Vyhľadávanie v aplikácii">
-    <button class="search-inline-button" type="submit">Hľadať</button>
+<form id="search-form-inline" class="search-wrap search-inline-form search-inline-panel" method="get" action="{{ url_for('aplikacia_hladat') }}" aria-label="Vyhľadávanie">
+    <div class="search-inline-row">
+        <input class="search-input search-input-inline search-input-inline-panel" name="q" type="text" value="{{ query }}" placeholder="Hľadať skupiny, členov alebo príspevky..." aria-label="Vyhľadávanie v aplikácii">
+        <button class="search-inline-button search-inline-button-panel" type="submit">Hľadať</button>
+    </div>
     <div class="search-filter-row search-filter-row-plain" role="group" aria-label="Filtre vyhľadávania">
         <label class="search-filter-item">
             <input type="checkbox" name="typ" value="profiles" {% if 'profiles' in selected_filters %}checked{% endif %}>
