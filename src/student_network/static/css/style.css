@@ -1857,14 +1857,14 @@ body.modal-open {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 0;
-    border-top: 1px solid #1a2f63;
-    background: #071433;
+    border-top: 1px solid rgba(255, 255, 255, 0.22);
+    background: var(--app-nav-color);
     z-index: 80;
 }
 
 .group-nav-item {
     border: none;
-    border-right: 1px solid #1a2f63;
+    border-right: 1px solid rgba(255, 255, 255, 0.22);
     background: transparent;
     color: #c8d5ff;
     min-height: 58px;
@@ -1879,7 +1879,7 @@ body.modal-open {
 }
 
 .group-nav-item.active {
-    background: #102246;
+    background: rgba(255, 255, 255, 0.14);
     color: #ffffff;
 }
 
