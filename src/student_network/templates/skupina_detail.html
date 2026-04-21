@@ -91,9 +91,16 @@
                             <h3>Nástenka skupiny</h3>
                             <p>Priestor pre členov skupiny na odkazy, nápady a krátke odkazy.</p>
                         </div>
+                        <button class="group-board-toggle-button" type="button" data-member-board-toggle aria-expanded="false" aria-controls="member-board-form-wrap">+ Pridať oznam</button>
                     </div>
 
-                    <form class="group-board-form group-board-form-member" method="post" action="{{ url_for('aplikacia_skupina_nastenka', group_id=group.id) }}">
+                    <form
+                        class="group-board-form group-board-form-member"
+                        method="post"
+                        action="{{ url_for('aplikacia_skupina_nastenka', group_id=group.id) }}"
+                        id="member-board-form-wrap"
+                        data-member-board-form
+                        hidden>
                         <input type="hidden" name="board_type" value="member">
                         <div class="field">
                             <label for="member-board-title">Nadpis príspevku</label>
@@ -105,6 +112,7 @@
                         </div>
                         <div class="actions">
                             <button class="btn" type="submit">Pridať na nástenku</button>
+                            <button class="btn-link group-board-cancel-button" type="button" data-member-board-cancel>Zrušiť</button>
                         </div>
                     </form>
 
@@ -429,6 +437,7 @@
     const currentMonth = '{{ current_month_key }}';
     const navItems = document.querySelectorAll('.group-nav-item');
     const panels = document.querySelectorAll('.group-tab-panel');
+    const mainPanel = document.querySelector('.group-main-panel');
     const eventModal = document.getElementById('group-event-modal');
     const eventModalTitle = document.getElementById('group-event-modal-title');
     const eventAction = document.getElementById('group-event-action');
@@ -445,6 +454,9 @@
     const shareDropZone = document.getElementById('group-file-drop-zone');
     const shareFileName = document.getElementById('group-file-selected-name');
     const sharePickerButton = document.getElementById('group-file-picker-button');
+    const memberBoardToggle = document.querySelector('[data-member-board-toggle]');
+    const memberBoardForm = document.querySelector('[data-member-board-form]');
+    const memberBoardCancel = document.querySelector('[data-member-board-cancel]');
 
     const toDisplayDate = function (isoDate) {
         if (!isoDate) {
@@ -516,6 +528,10 @@
             panel.hidden = !shouldShow;
         });
 
+        if (mainPanel) {
+            mainPanel.hidden = true;
+        }
+
         if (updateUrl) {
             flashMessages.forEach(function (message) {
                 message.style.display = 'none';
@@ -537,6 +553,35 @@
                 setActiveTab(button.dataset.tabTarget, true);
             });
         });
+    }
+
+    if (memberBoardToggle && memberBoardForm) {
+        const hideMemberBoardForm = function () {
+            memberBoardForm.hidden = true;
+            memberBoardToggle.setAttribute('aria-expanded', 'false');
+            memberBoardForm.reset();
+        };
+
+        const showMemberBoardForm = function () {
+            memberBoardForm.hidden = false;
+            memberBoardToggle.setAttribute('aria-expanded', 'true');
+            const firstInput = memberBoardForm.querySelector('input[name="title"]');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        };
+
+        memberBoardToggle.addEventListener('click', function () {
+            if (memberBoardForm.hidden) {
+                showMemberBoardForm();
+            } else {
+                hideMemberBoardForm();
+            }
+        });
+
+        if (memberBoardCancel) {
+            memberBoardCancel.addEventListener('click', hideMemberBoardForm);
+        }
     }
 
     if (shareFileInput && shareDropZone && shareFileName && sharePickerButton) {
