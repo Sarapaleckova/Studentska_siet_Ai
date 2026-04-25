@@ -40,6 +40,12 @@ from student_network.repositories.group_files import (
     get_group_files,
     update_group_file_folder,
 )
+from student_network.repositories.home_events import (
+    create_home_event,
+    get_home_event_by_id,
+    get_home_events_with_visibility_for_user,
+    set_home_event_hidden_for_user,
+)
 from student_network.repositories.groups import (
     approve_group_request,
     bulk_update_member_roles,
@@ -82,6 +88,13 @@ THEME_PRESETS: dict[str, dict[str, str]] = {
     'default': {'bg': '#0b1f4d', 'nav': '#071433'},
     'pink': {'bg': '#b84f8a', 'nav': '#7a1f4e'},
     'ocean': {'bg': '#1a4f8b', 'nav': '#0f2f54'},
+}
+HOME_EVENT_CATEGORY_LABELS: dict[str, str] = {
+    'spolocenska': 'Spoločenská udalosť',
+    'podujatie': 'Podujatie / event',
+    'sutaz': 'Súťaž',
+    'party': 'Party',
+    'ine': 'Iné',
 }
 HEX_COLOR_PATTERN = re.compile(r'^#[0-9a-fA-F]{6}$')
 
@@ -414,11 +427,119 @@ def register_routes(app: Flask) -> None:
             }
             for row in post_rows
         ]
+
+        event_rows = get_home_events_with_visibility_for_user(user_id=int(g.user['id']))
+        now_value = datetime.now()
+        upcoming_events: list[dict] = []
+        past_events: list[dict] = []
+        hidden_events: list[dict] = []
+
+        for row in event_rows:
+            try:
+                event_dt = datetime.strptime(str(row['event_at']), '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                continue
+
+            event_view = {
+                'id': int(row['id']),
+                'nazov': row['nazov'],
+                'event_at': row['event_at'],
+                'event_at_display': event_dt.strftime('%d/%m/%Y %H:%M'),
+                'kategoria': row['kategoria'],
+                'kategoria_label': HOME_EVENT_CATEGORY_LABELS.get(str(row['kategoria']), 'Iné'),
+                'category_class': f"event-category-{row['kategoria']}",
+                'author': f"{row['author_meno']} {row['author_priezvisko']}",
+                'is_hidden': bool(row['is_hidden']),
+            }
+
+            if event_view['is_hidden']:
+                hidden_events.append(event_view)
+            elif event_dt >= now_value:
+                upcoming_events.append(event_view)
+            else:
+                past_events.append(event_view)
+
+        past_events.sort(key=lambda item: item['event_at'], reverse=True)
+
         return render_template(
             'domov.html',
             active_tab='domov',
             posts=posts,
+            upcoming_events=upcoming_events,
+            past_events=past_events,
+            hidden_events=hidden_events,
+            home_event_categories=[
+                {'value': key, 'label': label, 'class_name': f'event-category-{key}'}
+                for key, label in HOME_EVENT_CATEGORY_LABELS.items()
+            ],
         )
+
+    @app.route(f'{APP_BASE_PATH}/domov/udalosti', methods=['POST'])
+    @login_required
+    def aplikacia_domov_udalosti() -> str:
+        action_type = request.form.get('event_action', '').strip().lower()
+
+        if action_type == 'create':
+            nazov = request.form.get('event_name', '').strip()
+            event_datetime_raw = request.form.get('event_datetime', '').strip()
+            category = request.form.get('event_category', '').strip().lower()
+
+            if not nazov:
+                flash('Názov udalosti je povinný.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            if len(nazov) > 160:
+                flash('Názov udalosti môže mať najviac 160 znakov.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            if not event_datetime_raw:
+                flash('Dátum a čas udalosti je povinný.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            if category not in HOME_EVENT_CATEGORY_LABELS:
+                category = 'ine'
+
+            try:
+                parsed_dt = datetime.strptime(event_datetime_raw, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                flash('Neplatný formát dátumu a času udalosti.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            create_home_event(
+                created_by_user_id=int(g.user['id']),
+                nazov=nazov,
+                event_at=parsed_dt.strftime('%Y-%m-%d %H:%M:%S'),
+                kategoria=category,
+            )
+            flash('Udalosť bola pridaná na nástenku.', 'success')
+            return redirect(url_for('aplikacia_domov'))
+
+        if action_type in {'hide', 'unhide'}:
+            event_id_raw = request.form.get('event_id', '').strip()
+            try:
+                event_id = int(event_id_raw)
+            except ValueError:
+                flash('Neplatná udalosť.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            event_row = get_home_event_by_id(event_id=event_id)
+            if event_row is None:
+                flash('Udalosť sa nenašla.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            set_home_event_hidden_for_user(
+                user_id=int(g.user['id']),
+                event_id=event_id,
+                is_hidden=(action_type == 'hide'),
+            )
+            if action_type == 'hide':
+                flash('Udalosť bola skrytá.', 'success')
+            else:
+                flash('Udalosť sa opäť zobrazuje.', 'success')
+            return redirect(url_for('aplikacia_domov'))
+
+        flash('Neplatná akcia udalosti.', 'error')
+        return redirect(url_for('aplikacia_domov'))
 
     @app.route(f'{APP_BASE_PATH}/skupiny')
     @login_required

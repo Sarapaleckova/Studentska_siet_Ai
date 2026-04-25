@@ -3,6 +3,110 @@
 {% block title %}Domov{% endblock %}
 
 {% block content %}
+<section class="section-card home-events-board" aria-label="Nástenka udalostí">
+    <div class="home-events-head">
+        <h2>Nástenka udalostí</h2>
+        <button class="home-events-mini-btn" type="button" data-event-form-toggle aria-expanded="false" aria-controls="home-event-create-form">+</button>
+    </div>
+
+    <form id="home-event-create-form" class="home-event-create-form" method="post" action="{{ url_for('aplikacia_domov_udalosti') }}" hidden>
+        <input type="hidden" name="event_action" value="create">
+        <div class="field">
+            <label for="home-event-name">Názov udalosti</label>
+            <input id="home-event-name" name="event_name" type="text" maxlength="160" required>
+        </div>
+        <div class="field">
+            <label for="home-event-datetime">Dátum a čas</label>
+            <input id="home-event-datetime" name="event_datetime" type="datetime-local" required>
+        </div>
+        <div class="field">
+            <label for="home-event-category">Kategória</label>
+            <select id="home-event-category" name="event_category" data-event-category-select>
+                {% for category in home_event_categories %}
+                    <option value="{{ category.value }}">{{ category.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="home-event-category-preview" aria-label="Farebné rozlíšenie kategórií">
+            {% for category in home_event_categories %}
+                <span class="home-event-category-chip {{ category.class_name }} {% if loop.first %}active{% endif %}" data-category-chip="{{ category.value }}">{{ category.label }}</span>
+            {% endfor %}
+        </div>
+        <div class="actions">
+            <button class="btn" type="submit">Uložiť</button>
+        </div>
+    </form>
+
+    <div class="home-event-view-controls">
+        <button class="home-events-mini-btn active" type="button" data-events-view="upcoming">Budúce</button>
+        <button class="home-events-mini-btn" type="button" data-events-view="past">Minulé udalosti</button>
+        <button class="home-events-mini-btn" type="button" data-events-view="hidden">Skryté</button>
+    </div>
+
+    <div class="home-event-pane" data-events-pane="upcoming">
+        {% if upcoming_events %}
+            <div class="home-event-stickers">
+                {% for event in upcoming_events %}
+                    <article class="home-event-sticker {{ event.category_class }}">
+                        <h3>{{ event.nazov }}</h3>
+                        <p class="home-event-date">{{ event.event_at_display }}</p>
+                        <p class="home-event-category">{{ event.kategoria_label }}</p>
+                        <form method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">
+                            <input type="hidden" name="event_action" value="hide">
+                            <input type="hidden" name="event_id" value="{{ event.id }}">
+                            <button class="home-events-mini-btn" type="submit">Nezaujímam sa</button>
+                        </form>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-note">Momentálne nemáš žiadne budúce udalosti.</p>
+        {% endif %}
+    </div>
+
+    <div class="home-event-pane" data-events-pane="past" hidden>
+        {% if past_events %}
+            <div class="home-event-stickers">
+                {% for event in past_events %}
+                    <article class="home-event-sticker {{ event.category_class }} past-event">
+                        <h3>{{ event.nazov }}</h3>
+                        <p class="home-event-date">{{ event.event_at_display }}</p>
+                        <p class="home-event-category">{{ event.kategoria_label }}</p>
+                        <form method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">
+                            <input type="hidden" name="event_action" value="hide">
+                            <input type="hidden" name="event_id" value="{{ event.id }}">
+                            <button class="home-events-mini-btn" type="submit">Nezaujímam sa</button>
+                        </form>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-note">Žiadne minulé udalosti.</p>
+        {% endif %}
+    </div>
+
+    <div class="home-event-pane" data-events-pane="hidden" hidden>
+        {% if hidden_events %}
+            <div class="home-event-stickers">
+                {% for event in hidden_events %}
+                    <article class="home-event-sticker {{ event.category_class }} is-hidden-event">
+                        <h3>{{ event.nazov }}</h3>
+                        <p class="home-event-date">{{ event.event_at_display }}</p>
+                        <p class="home-event-category">{{ event.kategoria_label }}</p>
+                        <form method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">
+                            <input type="hidden" name="event_action" value="unhide">
+                            <input type="hidden" name="event_id" value="{{ event.id }}">
+                            <button class="home-events-mini-btn" type="submit">Zobraziť späť</button>
+                        </form>
+                    </article>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="empty-note">Žiadne skryté udalosti.</p>
+        {% endif %}
+    </div>
+</section>
+
 <h1>Domov</h1>
 {% if g.user %}
 <p class="welcome-text">Prihlásený používateľ: {{ g.user['meno'] }} {{ g.user['priezvisko'] }}</p>
@@ -45,4 +149,51 @@
     <p>Zatiaľ nie sú pridané žiadne príspevky.</p>
 </section>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const formToggle = document.querySelector('[data-event-form-toggle]');
+    const createForm = document.getElementById('home-event-create-form');
+    const viewButtons = document.querySelectorAll('[data-events-view]');
+    const panes = document.querySelectorAll('[data-events-pane]');
+    const categorySelect = document.querySelector('[data-event-category-select]');
+    const categoryChips = document.querySelectorAll('[data-category-chip]');
+
+    if (formToggle && createForm) {
+        formToggle.addEventListener('click', function () {
+            const willShow = createForm.hidden;
+            createForm.hidden = !willShow;
+            formToggle.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+        });
+    }
+
+    if (viewButtons.length > 0 && panes.length > 0) {
+        viewButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                const targetView = button.dataset.eventsView;
+                viewButtons.forEach(function (otherButton) {
+                    otherButton.classList.toggle('active', otherButton === button);
+                });
+                panes.forEach(function (pane) {
+                    pane.hidden = pane.dataset.eventsPane !== targetView;
+                });
+            });
+        });
+    }
+
+    if (categorySelect && categoryChips.length > 0) {
+        const syncCategoryPreview = function () {
+            const selectedValue = categorySelect.value;
+            categoryChips.forEach(function (chip) {
+                chip.classList.toggle('active', chip.dataset.categoryChip === selectedValue);
+            });
+        };
+
+        categorySelect.addEventListener('change', syncCategoryPreview);
+        syncCategoryPreview();
+    }
+})();
+</script>
 {% endblock %}

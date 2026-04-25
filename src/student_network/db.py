@@ -72,6 +72,27 @@ CREATE TABLE IF NOT EXISTS post_comments (
     FOREIGN KEY (parent_comment_id) REFERENCES post_comments(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS home_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    created_by_user_id INTEGER NOT NULL,
+    nazov TEXT NOT NULL,
+    event_at TEXT NOT NULL,
+    kategoria TEXT NOT NULL DEFAULT 'ine' CHECK (kategoria IN ('spolocenska', 'podujatie', 'sutaz', 'party', 'ine')),
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS home_event_hidden_preferences (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    event_id INTEGER NOT NULL,
+    is_hidden INTEGER NOT NULL DEFAULT 1 CHECK (is_hidden IN (0, 1)),
+    updated_at TEXT NOT NULL,
+    UNIQUE(user_id, event_id),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (event_id) REFERENCES home_events(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS groups_table (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     nazov TEXT NOT NULL UNIQUE,
