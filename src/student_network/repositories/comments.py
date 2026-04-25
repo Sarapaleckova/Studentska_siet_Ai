@@ -52,3 +52,17 @@ def get_post_comment_by_id(post_id: int, comment_id: int) -> Row | None:
         """,
         (post_id, comment_id),
     ).fetchone()
+
+
+def update_post_comment(comment_id: int, text: str) -> bool:
+    database = get_db()
+    cursor = database.execute(
+        """
+        UPDATE post_comments
+        SET text = ?
+        WHERE id = ?
+        """,
+        (text, comment_id),
+    )
+    database.commit()
+    return int(cursor.rowcount) > 0

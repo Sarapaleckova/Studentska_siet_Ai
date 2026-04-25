@@ -1078,6 +1078,39 @@ textarea {
     font-size: 0.9rem;
 }
 
+.comment-edit-details {
+    margin-left: auto;
+}
+
+.comment-edit-toggle {
+    list-style: none;
+    cursor: pointer;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #d9e2f3;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #3a4e79;
+    font-size: 0.85rem;
+    background: #ffffff;
+}
+
+.comment-edit-toggle:hover {
+    border-color: #9caed8;
+    color: #0f58c7;
+}
+
+.comment-edit-toggle::-webkit-details-marker {
+    display: none;
+}
+
+.comment-edit-form {
+    margin-top: 8px;
+    padding: 8px;
+}
+
 .comment-text {
     margin: 0 0 10px 0;
     color: #1a2540;

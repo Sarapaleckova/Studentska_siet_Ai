@@ -20,7 +20,7 @@ from student_network.file_types import (
     POST_FILE_ACCEPT_VALUE,
     post_file_types_description,
 )
-from student_network.repositories.comments import create_post_comment, get_post_comment_by_id, get_post_comments
+from student_network.repositories.comments import create_post_comment, get_post_comment_by_id, get_post_comments, update_post_comment
 from student_network.repositories.group_events import (
     create_group_event,
     create_group_event_notification,
@@ -1533,6 +1533,11 @@ def register_routes(app: Flask) -> None:
             'text': '',
             'parent_comment_id': '',
         }
+        comment_edit_errors: dict[str, str] = {}
+        comment_edit_values = {
+            'comment_id': '',
+            'text': '',
+        }
         edit_errors: dict[str, str] = {}
         edit_values = {
             'nazov': post_row['nazov'],
@@ -1703,6 +1708,40 @@ def register_routes(app: Flask) -> None:
                     flash('Komentár bol uložený.', 'success')
                     return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug, _anchor='komentare'))
 
+            elif action_type == 'edit_comment':
+                comment_id_raw = request.form.get('comment_id', '').strip()
+                edited_text = request.form.get('text', '').strip()
+
+                comment_edit_values['comment_id'] = comment_id_raw
+                comment_edit_values['text'] = edited_text
+
+                comment_row = None
+                comment_id = None
+
+                if not comment_id_raw:
+                    comment_edit_errors['text'] = 'Komentár sa nepodarilo identifikovať.'
+                else:
+                    try:
+                        comment_id = int(comment_id_raw)
+                    except ValueError:
+                        comment_edit_errors['text'] = 'Neplatný identifikátor komentára.'
+                    else:
+                        comment_row = get_post_comment_by_id(post_id, comment_id)
+                        if comment_row is None:
+                            comment_edit_errors['text'] = 'Komentár sa nenašiel.'
+                        elif int(comment_row['user_id']) != int(g.user['id']):
+                            abort(403)
+
+                if not edited_text:
+                    comment_edit_errors['text'] = 'Komentár nemôže byť prázdny.'
+                elif len(edited_text) > 2000:
+                    comment_edit_errors['text'] = 'Komentár môže mať najviac 2000 znakov.'
+
+                if not comment_edit_errors and comment_id is not None:
+                    update_post_comment(comment_id=comment_id, text=edited_text)
+                    flash('Komentár bol upravený.', 'success')
+                    return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug, _anchor='komentare'))
+
             else:
                 flash('Neplatná akcia.', 'error')
                 return redirect(url_for('aplikacia_prispevok_detail', post_id=post_id, post_slug=canonical_post_slug))
@@ -1745,7 +1784,9 @@ def register_routes(app: Flask) -> None:
             comments_tree=comments_tree,
             comment_errors=comment_errors,
             comment_form_values=comment_form_values,
-            comments_modal_open=bool(comment_errors),
+            comment_edit_errors=comment_edit_errors,
+            comment_edit_values=comment_edit_values,
+            comments_modal_open=bool(comment_errors or comment_edit_errors),
             edit_errors=edit_errors,
             edit_values=edit_values,
             edit_form_open=edit_form_open,

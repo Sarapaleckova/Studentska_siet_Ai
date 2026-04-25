@@ -188,6 +188,22 @@
                         <div class="comment-meta">
                             <strong>{{ comment.author }}</strong>
                             <span>{{ comment.created_at }}</span>
+                            {% if comment.user_id == g.user['id'] %}
+                                <details class="comment-edit-details"{% if comment_edit_values.comment_id == comment.id|string %} open{% endif %}>
+                                    <summary class="comment-edit-toggle" aria-label="Upraviť komentár" title="Upraviť komentár">✎</summary>
+                                    <form method="post" class="comment-form comment-edit-form">
+                                        <input type="hidden" name="action_type" value="edit_comment">
+                                        <input type="hidden" name="comment_id" value="{{ comment.id }}">
+                                        <div class="field">
+                                            <textarea name="text" rows="3" maxlength="2000" placeholder="Upravte komentár...">{{ comment_edit_values.text if comment_edit_values.comment_id == comment.id|string else comment.text }}</textarea>
+                                            <p class="form-error field-error" aria-live="polite">{{ comment_edit_errors.text if comment_edit_errors and comment_edit_values.comment_id == comment.id|string else '' }}</p>
+                                        </div>
+                                        <div class="actions comment-actions">
+                                            <button class="btn btn-small" type="submit">Uložiť</button>
+                                        </div>
+                                    </form>
+                                </details>
+                            {% endif %}
                         </div>
                         <p class="comment-text">{{ comment.text }}</p>
 
