@@ -1743,6 +1743,49 @@ body.modal-open {
     padding: 8px 12px;
 }
 
+.group-upload-form select,
+.group-file-folder-form select {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #b7c4e0;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #102246;
+}
+
+.group-folder-filters {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.group-folder-filter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border: 1px solid #ccd8f2;
+    border-radius: 999px;
+    background: #f4f7ff;
+    color: #22375f;
+    text-decoration: none;
+    font-size: 0.88rem;
+}
+
+.group-folder-filter:hover {
+    border-color: #8aa1d4;
+    background: #eaf0ff;
+}
+
+.group-folder-filter.active {
+    background: #0f58c7;
+    border-color: #0f58c7;
+    color: #ffffff;
+}
+
 .group-files-list {
     display: flex;
     flex-direction: column;
@@ -1790,6 +1833,30 @@ body.modal-open {
     margin: 8px 0 0 0;
     color: #2d426e;
     font-size: 0.9rem;
+}
+
+.group-file-folder-form {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.group-file-folder-form label {
+    margin: 0;
+    color: #2d426e;
+    font-size: 0.86rem;
+    min-width: 150px;
+}
+
+.group-file-folder-form select {
+    flex: 1 1 180px;
+}
+
+.group-file-folder-form .btn {
+    flex: 0 0 auto;
+    min-width: 150px;
 }
 
 .group-list {

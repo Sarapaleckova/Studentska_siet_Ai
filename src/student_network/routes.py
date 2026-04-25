@@ -31,7 +31,15 @@ from student_network.repositories.group_events import (
     update_group_event,
 )
 from student_network.repositories.group_board_posts import create_group_board_post, get_group_board_posts
-from student_network.repositories.group_files import create_group_file, get_group_file_by_id, get_group_files
+from student_network.repositories.group_files import (
+    create_group_file,
+    create_group_file_folder,
+    get_group_file_by_id,
+    get_group_file_folder_by_id,
+    get_group_file_folders,
+    get_group_files,
+    update_group_file_folder,
+)
 from student_network.repositories.groups import (
     approve_group_request,
     bulk_update_member_roles,
@@ -718,7 +726,37 @@ def register_routes(app: Flask) -> None:
             for row in notification_rows
         ]
 
-        group_file_rows = get_group_files(group_id=group_id)
+        folder_filter = request.args.get('folder', 'all').strip().lower()
+        if not folder_filter:
+            folder_filter = 'all'
+
+        group_folder_rows = get_group_file_folders(group_id=group_id)
+        group_file_folders = [
+            {
+                'id': int(row['id']),
+                'nazov': row['nazov'],
+                'created_at': _format_datetime_eu(row['created_at']),
+                'author': f"{row['author_meno']} {row['author_priezvisko']}",
+            }
+            for row in group_folder_rows
+        ]
+        folder_ids = {str(folder['id']) for folder in group_file_folders}
+
+        selected_folder_id: int | None = None
+        show_unassigned_files = False
+        if folder_filter in {'nezaradene', 'unassigned'}:
+            folder_filter = 'nezaradene'
+            show_unassigned_files = True
+        elif folder_filter.isdigit() and folder_filter in folder_ids:
+            selected_folder_id = int(folder_filter)
+        else:
+            folder_filter = 'all'
+
+        group_file_rows = get_group_files(
+            group_id=group_id,
+            folder_id=selected_folder_id,
+            only_unassigned=show_unassigned_files,
+        )
         group_files = [
             {
                 'id': row['id'],
@@ -726,6 +764,8 @@ def register_routes(app: Flask) -> None:
                 'typ_suboru': row['typ_suboru'] or _post_file_type_from_name(row['original_nazov']),
                 'author': f"{row['author_meno']} {row['author_priezvisko']}",
                 'uploaded_at': _format_datetime_eu(row['uploaded_at']),
+                'folder_id': int(row['folder_id']) if row['folder_id'] is not None else None,
+                'folder_nazov': row['folder_nazov'] if row['folder_nazov'] else 'Nezaradené',
             }
             for row in group_file_rows
         ]
@@ -748,6 +788,8 @@ def register_routes(app: Flask) -> None:
             month_events=month_events,
             notifications=notifications,
             group_files=group_files,
+            group_file_folders=group_file_folders,
+            active_file_folder_filter=folder_filter,
             group_file_accept=GROUP_FILE_ACCEPT_VALUE,
             week_days=['Po', 'Ut', 'St', 'Št', 'Pi', 'So', 'Ne'],
             members=members,
@@ -1139,6 +1181,18 @@ def register_routes(app: Flask) -> None:
             flash('Nahrávanie súborov je dostupné len pre členov skupiny.', 'error')
             return redirect(url_for('aplikacia_skupiny'))
 
+        folder_value = request.form.get('folder_id', '').strip().lower()
+        selected_folder_id: int | None = None
+        if folder_value and folder_value != 'nezaradene':
+            if not folder_value.isdigit():
+                flash('Neplatný priečinok pre súbor.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='zdielat'))
+            selected_folder_id = int(folder_value)
+            folder_row = get_group_file_folder_by_id(group_id=group_id, folder_id=selected_folder_id)
+            if folder_row is None:
+                flash('Vybraný priečinok neexistuje.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='zdielat'))
+
         uploaded_file = request.files.get('subor')
         if not uploaded_file or not uploaded_file.filename:
             flash('Vyberte súbor na nahratie.', 'error')
@@ -1163,9 +1217,89 @@ def register_routes(app: Flask) -> None:
             stored_subor=stored_name,
             original_nazov=original_name,
             typ_suboru=file_type,
+            folder_id=selected_folder_id,
         )
         flash('Súbor bol nahratý do skupiny.', 'success')
-        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory'))
+        redirect_folder = str(selected_folder_id) if selected_folder_id is not None else 'nezaradene'
+        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory', folder=redirect_folder))
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/subory/priecinky', methods=['POST'])
+    @login_required
+    def aplikacia_skupina_subory_priecinok_vytvorit(group_id: int) -> str:
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            flash('Priečinky môže spravovať len člen skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        folder_name = request.form.get('folder_name', '').strip()
+        if not folder_name:
+            flash('Názov priečinka je povinný.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory'))
+
+        if len(folder_name) > 80:
+            flash('Názov priečinka môže mať najviac 80 znakov.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory'))
+
+        folder_id = create_group_file_folder(
+            group_id=group_id,
+            created_by_user_id=int(g.user['id']),
+            nazov=folder_name,
+        )
+        if folder_id is None:
+            flash('Priečinok s týmto názvom už existuje.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory'))
+
+        flash('Priečinok bol vytvorený.', 'success')
+        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory', folder=folder_id))
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/subory/<int:group_file_id>/priecinok', methods=['POST'])
+    @login_required
+    def aplikacia_skupina_subor_priecinok_nastavit(group_id: int, group_file_id: int) -> str:
+        group = get_group_by_id(group_id)
+        if group is None:
+            flash('Skupina sa nenašla.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            flash('Triedenie súborov je dostupné len pre členov skupiny.', 'error')
+            return redirect(url_for('aplikacia_skupiny'))
+
+        group_file = get_group_file_by_id(group_id=group_id, group_file_id=group_file_id)
+        if group_file is None:
+            flash('Súbor sa nenašiel.', 'error')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory'))
+
+        folder_value = request.form.get('folder_id', '').strip().lower()
+        target_folder_id: int | None = None
+        redirect_folder = 'all'
+
+        if folder_value and folder_value != 'nezaradene':
+            if not folder_value.isdigit():
+                flash('Neplatný priečinok pre súbor.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory'))
+
+            target_folder_id = int(folder_value)
+            folder_row = get_group_file_folder_by_id(group_id=group_id, folder_id=target_folder_id)
+            if folder_row is None:
+                flash('Vybraný priečinok neexistuje.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory'))
+            redirect_folder = folder_value
+        else:
+            redirect_folder = 'nezaradene'
+
+        update_group_file_folder(
+            group_id=group_id,
+            group_file_id=group_file_id,
+            folder_id=target_folder_id,
+        )
+        flash('Priečinok súboru bol aktualizovaný.', 'success')
+        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='subory', folder=redirect_folder))
 
     @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/subory/<int:group_file_id>/nahlad')
     @login_required

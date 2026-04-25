@@ -123,16 +123,29 @@ CREATE TABLE IF NOT EXISTS group_event_notifications (
     FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS group_file_folders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    created_by_user_id INTEGER NOT NULL,
+    nazov TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    UNIQUE(group_id, nazov),
+    FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
+    FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS group_files (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     group_id INTEGER NOT NULL,
     uploaded_by_user_id INTEGER NOT NULL,
+    folder_id INTEGER,
     stored_subor TEXT NOT NULL,
     original_nazov TEXT NOT NULL,
     typ_suboru TEXT NOT NULL DEFAULT '',
     uploaded_at TEXT NOT NULL,
     FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
-    FOREIGN KEY (uploaded_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (uploaded_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (folder_id) REFERENCES group_file_folders(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS group_board_posts (
@@ -182,6 +195,8 @@ def init_db() -> None:
     ensure_group_membership_joined_at_column(database)
     ensure_group_membership_role_column(database)
     ensure_group_event_notification_schedule_columns(database)
+    ensure_group_file_folders_table(database)
+    ensure_group_files_folder_column(database)
     ensure_seed_groups(database)
     database.commit()
 
@@ -295,6 +310,33 @@ def ensure_group_event_notification_schedule_columns(database: sqlite3.Connectio
     if 'event_time' not in existing_column_names:
         database.execute(
             "ALTER TABLE group_event_notifications ADD COLUMN event_time TEXT NOT NULL DEFAULT ''"
+        )
+
+
+def ensure_group_file_folders_table(database: sqlite3.Connection) -> None:
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS group_file_folders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            created_by_user_id INTEGER NOT NULL,
+            nazov TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(group_id, nazov),
+            FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
+            FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+        """
+    )
+
+
+def ensure_group_files_folder_column(database: sqlite3.Connection) -> None:
+    columns = database.execute("PRAGMA table_info(group_files)").fetchall()
+    existing_column_names = {column['name'] for column in columns}
+
+    if 'folder_id' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE group_files ADD COLUMN folder_id INTEGER"
         )
 
 
