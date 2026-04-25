@@ -18,6 +18,63 @@ body {
     background: #0b1f4d;
 }
 
+.page-home,
+.page-form {
+    background:
+        radial-gradient(140% 90% at 50% -15%, rgba(33, 96, 218, 0.2) 0%, rgba(33, 96, 218, 0) 60%),
+        linear-gradient(160deg, #020919 0%, #06163e 48%, #030d28 100%);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.page-home::before,
+.page-form::before,
+.page-home::after,
+.page-form::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.page-home::before,
+.page-form::before {
+    background:
+        radial-gradient(125% 52% at -20% 52%, rgba(89, 174, 255, 0.5) 0%, rgba(89, 174, 255, 0.22) 23%, rgba(89, 174, 255, 0) 48%),
+        radial-gradient(130% 56% at -25% 60%, rgba(44, 145, 255, 0.45) 0%, rgba(44, 145, 255, 0.18) 24%, rgba(44, 145, 255, 0) 50%),
+        radial-gradient(140% 62% at -18% 68%, rgba(29, 117, 240, 0.36) 0%, rgba(29, 117, 240, 0.15) 24%, rgba(29, 117, 240, 0) 52%);
+    filter: blur(0.2px);
+}
+
+.page-home::after,
+.page-form::after {
+    background:
+        repeating-radial-gradient(
+            ellipse 170% 66% at -18% 58%,
+            rgba(124, 198, 255, 0.22) 0,
+            rgba(124, 198, 255, 0.22) 2px,
+            rgba(124, 198, 255, 0) 2px,
+            rgba(124, 198, 255, 0) 40px
+        ),
+        repeating-radial-gradient(
+            ellipse 156% 60% at -26% 66%,
+            rgba(92, 173, 255, 0.16) 0,
+            rgba(92, 173, 255, 0.16) 1px,
+            rgba(92, 173, 255, 0) 1px,
+            rgba(92, 173, 255, 0) 30px
+        ),
+        radial-gradient(45% 26% at 12% 54%, rgba(154, 217, 255, 0.16) 0%, rgba(154, 217, 255, 0) 78%),
+        radial-gradient(40% 22% at 64% 62%, rgba(86, 169, 255, 0.14) 0%, rgba(86, 169, 255, 0) 82%);
+    opacity: 0.56;
+}
+
+.page-home > *,
+.page-form > * {
+    position: relative;
+    z-index: 1;
+}
+
 .page-home {
     color: #ffffff;
     display: flex;
