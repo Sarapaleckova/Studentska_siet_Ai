@@ -743,22 +743,15 @@ def register_routes(app: Flask) -> None:
         folder_ids = {str(folder['id']) for folder in group_file_folders}
 
         selected_folder_id: int | None = None
-        show_unassigned_files = False
         if folder_filter in {'nezaradene', 'unassigned'}:
-            folder_filter = 'nezaradene'
-            show_unassigned_files = True
+            folder_filter = 'all'
         elif folder_filter.isdigit() and folder_filter in folder_ids:
             selected_folder_id = int(folder_filter)
         else:
             folder_filter = 'all'
 
-        group_file_rows = get_group_files(
-            group_id=group_id,
-            folder_id=selected_folder_id,
-            only_unassigned=show_unassigned_files,
-        )
-        group_files = [
-            {
+        def _file_row_to_view(row):
+            return {
                 'id': row['id'],
                 'original_nazov': row['original_nazov'],
                 'typ_suboru': row['typ_suboru'] or _post_file_type_from_name(row['original_nazov']),
@@ -767,8 +760,22 @@ def register_routes(app: Flask) -> None:
                 'folder_id': int(row['folder_id']) if row['folder_id'] is not None else None,
                 'folder_nazov': row['folder_nazov'] if row['folder_nazov'] else 'Nezaradené',
             }
-            for row in group_file_rows
-        ]
+
+        if selected_folder_id is not None:
+            selected_group_file_rows = get_group_files(group_id=group_id, folder_id=selected_folder_id)
+            selected_files_title = next(
+                (folder['nazov'] for folder in group_file_folders if folder['id'] == selected_folder_id),
+                'Priečinok',
+            )
+        else:
+            all_group_file_rows = get_group_files(group_id=group_id)
+            selected_group_file_rows = [row for row in all_group_file_rows if row['folder_id'] is not None]
+            selected_files_title = 'Všetky priečinky'
+
+        unassigned_group_file_rows = get_group_files(group_id=group_id, only_unassigned=True)
+
+        group_files = [_file_row_to_view(row) for row in selected_group_file_rows]
+        unassigned_group_files = [_file_row_to_view(row) for row in unassigned_group_file_rows]
 
         month_title = datetime(year_value, month_number, 1).strftime('%B %Y')
 
@@ -788,6 +795,8 @@ def register_routes(app: Flask) -> None:
             month_events=month_events,
             notifications=notifications,
             group_files=group_files,
+            unassigned_group_files=unassigned_group_files,
+            selected_files_title=selected_files_title,
             group_file_folders=group_file_folders,
             active_file_folder_filter=folder_filter,
             group_file_accept=GROUP_FILE_ACCEPT_VALUE,

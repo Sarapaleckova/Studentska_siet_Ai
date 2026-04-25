@@ -1754,36 +1754,86 @@ body.modal-open {
     color: #102246;
 }
 
-.group-folder-filters {
-    margin-top: 12px;
-    margin-bottom: 12px;
+.group-folder-tabs-wrap {
+    margin-top: 14px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
 }
 
-.group-folder-filter {
+.group-folder-tabs {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.group-folder-tab {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 6px 10px;
-    border: 1px solid #ccd8f2;
-    border-radius: 999px;
-    background: #f4f7ff;
-    color: #22375f;
+    min-height: 36px;
+    padding: 0 14px;
+    border: 1px solid #c8d6f3;
+    border-bottom: none;
+    border-radius: 10px 10px 0 0;
+    background: #e9f0ff;
+    color: #1b345f;
     text-decoration: none;
-    font-size: 0.88rem;
+    white-space: nowrap;
+    font-size: 0.9rem;
 }
 
-.group-folder-filter:hover {
-    border-color: #8aa1d4;
-    background: #eaf0ff;
+.group-folder-tab:hover {
+    background: #f3f7ff;
 }
 
-.group-folder-filter.active {
-    background: #0f58c7;
-    border-color: #0f58c7;
-    color: #ffffff;
+.group-folder-tab.active {
+    background: #ffffff;
+    color: #0f58c7;
+    font-weight: 700;
+}
+
+.group-folder-tab.drop-active {
+    box-shadow: 0 0 0 2px rgba(15, 88, 199, 0.2) inset;
+    background: #dfe9ff;
+}
+
+.group-folder-add-button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #c8d6f3;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #0f58c7;
+    cursor: pointer;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0;
+}
+
+.group-folder-add-button:hover {
+    background: #f3f7ff;
+}
+
+.group-folder-create-form {
+    margin-top: 8px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 8px;
+}
+
+.group-folder-create-form input {
+    flex: 1;
+    min-width: 180px;
+}
+
+.group-files-heading {
+    margin-top: 12px;
+    margin-bottom: 10px;
+    color: #102246;
 }
 
 .group-files-list {
@@ -1797,6 +1847,24 @@ body.modal-open {
     border-radius: 10px;
     padding: 10px 12px;
     background: #ffffff;
+    cursor: grab;
+}
+
+.group-file-item.is-dragging {
+    opacity: 0.55;
+}
+
+.group-unassigned-section {
+    margin-top: 14px;
+    border: 1px dashed #b7c4e0;
+    border-radius: 10px;
+    padding: 10px;
+    background: #fbfdff;
+}
+
+.group-unassigned-section.drop-active {
+    border-color: #0f58c7;
+    background: #edf4ff;
 }
 
 .group-file-top-row {

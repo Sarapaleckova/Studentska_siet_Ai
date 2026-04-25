@@ -376,28 +376,30 @@
 
         <section class="section-card group-tab-panel {% if active_detail_tab == 'subory' %}active{% endif %}" data-tab-panel="subory" {% if active_detail_tab != 'subory' %}hidden{% endif %}>
             <h2>Súbory</h2>
-            <form class="group-upload-form" method="post" action="{{ url_for('aplikacia_skupina_subory_priecinok_vytvorit', group_id=group.id) }}">
-                <div class="field">
-                    <label for="group-folder-name">Vytvoriť priečinok</label>
-                    <input id="group-folder-name" name="folder_name" type="text" maxlength="80" placeholder="Napr. Prednášky" required>
+            <div class="group-folder-tabs-wrap">
+                <div class="group-folder-tabs" role="tablist" aria-label="Priečinky súborov">
+                    <a class="group-folder-tab {% if active_file_folder_filter == 'all' %}active{% endif %}" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='subory', folder='all') }}">Všetky priečinky</a>
+                    {% for folder in group_file_folders %}
+                        <a
+                            class="group-folder-tab {% if active_file_folder_filter == folder.id|string %}active{% endif %}"
+                            href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='subory', folder=folder.id) }}"
+                            data-folder-drop-target="{{ folder.id }}"
+                            data-folder-name="{{ folder.nazov }}">{{ folder.nazov }}</a>
+                    {% endfor %}
                 </div>
-                <div class="actions">
-                    <button class="btn" type="submit">Vytvoriť priečinok</button>
-                </div>
-            </form>
-
-            <div class="group-folder-filters" role="tablist" aria-label="Filtrovanie súborov podľa priečinka">
-                <a class="group-folder-filter {% if active_file_folder_filter == 'all' %}active{% endif %}" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='subory', folder='all') }}">Zobraziť všetky súbory</a>
-                <a class="group-folder-filter {% if active_file_folder_filter == 'nezaradene' %}active{% endif %}" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='subory', folder='nezaradene') }}">Nezaradené</a>
-                {% for folder in group_file_folders %}
-                    <a class="group-folder-filter {% if active_file_folder_filter == folder.id|string %}active{% endif %}" href="{{ url_for('aplikacia_skupina_detail', group_id=group.id, tab='subory', folder=folder.id) }}">{{ folder.nazov }}</a>
-                {% endfor %}
+                <button class="group-folder-add-button" type="button" aria-label="Pridať priečinok" data-folder-create-toggle>+</button>
             </div>
 
+            <form class="group-folder-create-form" method="post" action="{{ url_for('aplikacia_skupina_subory_priecinok_vytvorit', group_id=group.id) }}" data-folder-create-form hidden>
+                <input id="group-folder-name" name="folder_name" type="text" maxlength="80" placeholder="Nový priečinok" required>
+                <button class="btn" type="submit">Vytvoriť</button>
+            </form>
+
+            <h3 class="group-files-heading">Obsah: {{ selected_files_title }}</h3>
             {% if group_files %}
                 <div class="group-files-list" role="list">
                     {% for file_item in group_files %}
-                        <article class="group-file-item" role="listitem">
+                        <article class="group-file-item" role="listitem" draggable="true" data-file-id="{{ file_item.id }}" data-current-folder="{{ file_item.folder_id if file_item.folder_id is not none else 'nezaradene' }}">
                             <div class="group-file-top-row">
                                 <h3 class="group-file-name">
                                     <a href="{{ url_for('aplikacia_skupina_subor_nahlad', group_id=group.id, group_file_id=file_item.id) }}" target="_blank" rel="noopener">{{ file_item.original_nazov }}</a>
@@ -419,8 +421,40 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <p>Pre túto skupinu zatiaľ nie sú nahraté žiadne skupinové súbory.</p>
+                <p>V tomto výbere zatiaľ nie sú súbory.</p>
             {% endif %}
+
+            <section class="group-unassigned-section" data-folder-drop-target="nezaradene" aria-label="Nezaradené súbory">
+                <h3 class="group-files-heading">Nezaradené</h3>
+                <p class="group-tab-note">Súbory bez priečinka. Potiahni sem súbor pre presun do sekcie Nezaradené.</p>
+                {% if unassigned_group_files %}
+                    <div class="group-files-list" role="list">
+                        {% for file_item in unassigned_group_files %}
+                            <article class="group-file-item" role="listitem" draggable="true" data-file-id="{{ file_item.id }}" data-current-folder="nezaradene">
+                                <div class="group-file-top-row">
+                                    <h3 class="group-file-name">
+                                        <a href="{{ url_for('aplikacia_skupina_subor_nahlad', group_id=group.id, group_file_id=file_item.id) }}" target="_blank" rel="noopener">{{ file_item.original_nazov }}</a>
+                                    </h3>
+                                    <a class="btn-link group-file-download" href="{{ url_for('aplikacia_skupina_subor_stiahnut', group_id=group.id, group_file_id=file_item.id) }}">Stiahnuť</a>
+                                </div>
+                                <p class="group-file-meta-line">Typ: {{ file_item.typ_suboru }} | Autor: {{ file_item.author }} | Nahrané: {{ file_item.uploaded_at }} | Priečinok: Nezaradené</p>
+                                <form class="group-file-folder-form" method="post" action="{{ url_for('aplikacia_skupina_subor_priecinok_nastavit', group_id=group.id, group_file_id=file_item.id) }}">
+                                    <label for="group-unassigned-file-folder-{{ file_item.id }}">Presunúť do priečinka</label>
+                                    <select id="group-unassigned-file-folder-{{ file_item.id }}" name="folder_id">
+                                        <option value="nezaradene" selected>Nezaradené</option>
+                                        {% for folder in group_file_folders %}
+                                            <option value="{{ folder.id }}">{{ folder.nazov }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="btn" type="submit">Uložiť priečinok</button>
+                                </form>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p>V sekcii Nezaradené zatiaľ nie sú súbory.</p>
+                {% endif %}
+            </section>
         </section>
     </main>
 
@@ -504,6 +538,11 @@
     const memberBoardToggle = document.querySelector('[data-member-board-toggle]');
     const memberBoardForm = document.querySelector('[data-member-board-form]');
     const memberBoardCancel = document.querySelector('[data-member-board-cancel]');
+    const folderCreateToggle = document.querySelector('[data-folder-create-toggle]');
+    const folderCreateForm = document.querySelector('[data-folder-create-form]');
+    const folderDropTargets = document.querySelectorAll('[data-folder-drop-target]');
+    const draggableFileItems = document.querySelectorAll('.group-file-item[data-file-id]');
+    const moveFolderPathTemplate = '{{ url_for("aplikacia_skupina_subor_priecinok_nastavit", group_id=group.id, group_file_id=0) }}';
 
     const toDisplayDate = function (isoDate) {
         if (!isoDate) {
@@ -674,6 +713,97 @@
             if (file) {
                 shareFileName.textContent = file.name;
             }
+        });
+    }
+
+    if (folderCreateToggle && folderCreateForm) {
+        folderCreateToggle.addEventListener('click', function () {
+            const willShow = folderCreateForm.hidden;
+            folderCreateForm.hidden = !willShow;
+            if (willShow) {
+                const input = folderCreateForm.querySelector('input[name="folder_name"]');
+                if (input) {
+                    input.focus();
+                }
+            }
+        });
+    }
+
+    if (folderDropTargets.length > 0 && draggableFileItems.length > 0) {
+        let draggedFileId = '';
+        let draggedFileCurrentFolder = '';
+
+        const cleanupDropTargets = function () {
+            folderDropTargets.forEach(function (target) {
+                target.classList.remove('drop-active');
+            });
+        };
+
+        const buildMoveUrl = function (fileId) {
+            return moveFolderPathTemplate.replace('/0/priecinok', '/' + fileId + '/priecinok');
+        };
+
+        const moveFileToFolder = function (fileId, folderValue) {
+            const payload = new URLSearchParams();
+            payload.set('folder_id', folderValue);
+
+            return fetch(buildMoveUrl(fileId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: payload.toString(),
+            });
+        };
+
+        draggableFileItems.forEach(function (fileItem) {
+            fileItem.addEventListener('dragstart', function (event) {
+                draggedFileId = fileItem.dataset.fileId || '';
+                draggedFileCurrentFolder = fileItem.dataset.currentFolder || '';
+                fileItem.classList.add('is-dragging');
+                if (event.dataTransfer) {
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', draggedFileId);
+                }
+            });
+
+            fileItem.addEventListener('dragend', function () {
+                fileItem.classList.remove('is-dragging');
+                cleanupDropTargets();
+                draggedFileId = '';
+                draggedFileCurrentFolder = '';
+            });
+        });
+
+        folderDropTargets.forEach(function (target) {
+            target.addEventListener('dragover', function (event) {
+                event.preventDefault();
+                target.classList.add('drop-active');
+            });
+
+            target.addEventListener('dragleave', function () {
+                target.classList.remove('drop-active');
+            });
+
+            target.addEventListener('drop', function (event) {
+                event.preventDefault();
+                target.classList.remove('drop-active');
+
+                const targetFolder = target.dataset.folderDropTarget || '';
+                if (!draggedFileId || !targetFolder || targetFolder === draggedFileCurrentFolder) {
+                    return;
+                }
+
+                moveFileToFolder(draggedFileId, targetFolder)
+                    .then(function () {
+                        window.location.reload();
+                    })
+                    .catch(function () {
+                        window.location.reload();
+                    });
+            });
         });
     }
 
