@@ -205,6 +205,15 @@
                             <span class="calendar-day-number">{{ day.day }}</span>
                             {% if day.has_events %}
                                 <span class="calendar-event-dot" aria-hidden="true"></span>
+                                <div class="calendar-day-tooltip" role="tooltip">
+                                    {% for event in day.events %}
+                                        <p class="calendar-day-tooltip-item">
+                                            {% if event.time %}<strong>{{ event.time }}</strong>{% endif %}
+                                            {{ event.title }}
+                                            {% if event.description %} - {{ event.description }}{% endif %}
+                                        </p>
+                                    {% endfor %}
+                                </div>
                             {% endif %}
                         </button>
                     {% endfor %}

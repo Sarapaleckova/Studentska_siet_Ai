@@ -2,6 +2,7 @@
 
 from calendar import monthrange
 from datetime import date, datetime
+from collections import defaultdict
 from functools import wraps
 import mimetypes
 from pathlib import Path
@@ -677,6 +678,17 @@ def register_routes(app: Flask) -> None:
             }
             for row in month_event_rows
         ]
+
+        events_by_date: dict[str, list[dict[str, str]]] = defaultdict(list)
+        for event in month_events:
+            events_by_date[event['event_date']].append(
+                {
+                    'time': event['event_time_display'] or '',
+                    'title': event['nazov'] or '',
+                    'description': event['popis'] or '',
+                }
+            )
+
         event_dates = {event['event_date'] for event in month_events}
 
         calendar_weeks = _build_group_calendar_grid(
@@ -684,6 +696,10 @@ def register_routes(app: Flask) -> None:
             month_value=month_number,
             event_dates=event_dates,
         )
+
+        for week in calendar_weeks:
+            for day in week:
+                day['events'] = events_by_date.get(day['date_iso'], [])
 
         notification_rows = get_group_notifications(group_id)
         notifications = [
