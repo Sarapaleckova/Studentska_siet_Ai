@@ -33,6 +33,21 @@ def create_group_board_post(
     return int(cursor.lastrowid)
 
 
+def update_group_board_post(post_id: int, title: str, content: str) -> None:
+    database = get_db()
+    database.execute(
+        """
+        UPDATE group_board_posts
+        SET
+            title = ?,
+            content = ?
+        WHERE id = ?
+        """,
+        (title, content, post_id),
+    )
+    database.commit()
+
+
 def get_group_board_posts(group_id: int, board_type: str) -> list[Row]:
     database = get_db()
     rows = database.execute(

@@ -72,7 +72,30 @@
                         <div class="group-announcement-list">
                             {% for post in group_announcements %}
                                 <article class="group-announcement-card">
-                                    <h4 class="group-announcement-title">{{ post.title }}</h4>
+                                    <div class="group-announcement-card-head">
+                                        <h4 class="group-announcement-title">{{ post.title }}</h4>
+                                        {% if post.author_is_current_user %}
+                                            <details class="group-board-edit-details">
+                                                <summary class="group-board-edit-toggle" aria-label="Upraviť oznam" title="Upraviť oznam">✎</summary>
+                                                <form class="group-board-edit-form" method="post" action="{{ url_for('aplikacia_skupina_nastenka', group_id=group.id) }}">
+                                                    <input type="hidden" name="board_action" value="edit">
+                                                    <input type="hidden" name="board_type" value="announcement">
+                                                    <input type="hidden" name="board_post_id" value="{{ post.id }}">
+                                                    <div class="field">
+                                                        <label for="announcement-edit-title-{{ post.id }}">Nadpis oznamu</label>
+                                                        <input id="announcement-edit-title-{{ post.id }}" name="title" type="text" maxlength="140" value="{{ post.title }}" required>
+                                                    </div>
+                                                    <div class="field">
+                                                        <label for="announcement-edit-content-{{ post.id }}">Text oznamu</label>
+                                                        <textarea id="announcement-edit-content-{{ post.id }}" name="content" rows="4" maxlength="1500" required>{{ post.content }}</textarea>
+                                                    </div>
+                                                    <div class="actions">
+                                                        <button class="btn btn-small" type="submit">Uložiť</button>
+                                                    </div>
+                                                </form>
+                                            </details>
+                                        {% endif %}
+                                    </div>
                                     <p class="group-announcement-content">{{ post.content }}</p>
                                     <p class="group-announcement-meta">
                                         <a class="profile-link-inline profile-link-inline-text" href="{{ post.author_profile_url }}">{{ post.author }}{% if post.author_is_current_user %} (Vy){% endif %}</a>
@@ -123,7 +146,30 @@
                                 <article class="group-member-note-card">
                                     <div class="group-member-note-pin" aria-hidden="true"></div>
                                     <div class="group-member-note-header">
-                                        <h4 class="group-member-note-title">{{ post.title }}</h4>
+                                        <div class="group-member-note-head">
+                                            <h4 class="group-member-note-title">{{ post.title }}</h4>
+                                            {% if post.author_is_current_user %}
+                                                <details class="group-board-edit-details">
+                                                    <summary class="group-board-edit-toggle" aria-label="Upraviť oznam" title="Upraviť oznam">✎</summary>
+                                                    <form class="group-board-edit-form" method="post" action="{{ url_for('aplikacia_skupina_nastenka', group_id=group.id) }}">
+                                                        <input type="hidden" name="board_action" value="edit">
+                                                        <input type="hidden" name="board_type" value="member">
+                                                        <input type="hidden" name="board_post_id" value="{{ post.id }}">
+                                                        <div class="field">
+                                                            <label for="member-edit-title-{{ post.id }}">Nadpis príspevku</label>
+                                                            <input id="member-edit-title-{{ post.id }}" name="title" type="text" maxlength="140" value="{{ post.title }}" required>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label for="member-edit-content-{{ post.id }}">Text príspevku</label>
+                                                            <textarea id="member-edit-content-{{ post.id }}" name="content" rows="4" maxlength="1500" required>{{ post.content }}</textarea>
+                                                        </div>
+                                                        <div class="actions">
+                                                            <button class="btn btn-small" type="submit">Uložiť</button>
+                                                        </div>
+                                                    </form>
+                                                </details>
+                                            {% endif %}
+                                        </div>
                                         <p class="group-member-note-meta">
                                             <a class="profile-link-inline profile-link-inline-text" href="{{ post.author_profile_url }}">{{ post.author }}{% if post.author_is_current_user %} (Vy){% endif %}</a>
                                             • {{ post.created_at }}

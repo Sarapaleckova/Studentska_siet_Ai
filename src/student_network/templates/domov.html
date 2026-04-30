@@ -48,7 +48,38 @@
             <div class="home-event-stickers">
                 {% for event in upcoming_events %}
                     <article class="home-event-sticker {{ event.category_class }}">
-                        <h3>{{ event.nazov }}</h3>
+                        <div class="home-event-sticker-head">
+                            <h3>{{ event.nazov }}</h3>
+                            {% if event.author_is_current_user %}
+                                <details class="home-event-edit-details">
+                                    <summary class="home-event-edit-toggle" aria-label="Upraviť udalosť" title="Upraviť udalosť">✎</summary>
+                                    <form class="home-event-edit-form" method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">
+                                        <input type="hidden" name="event_action" value="edit">
+                                        <input type="hidden" name="event_id" value="{{ event.id }}">
+                                        <div class="field">
+                                            <label for="home-event-edit-name-{{ event.id }}">Názov udalosti</label>
+                                            <input id="home-event-edit-name-{{ event.id }}" name="event_name" type="text" maxlength="160" value="{{ event.nazov }}" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="home-event-edit-datetime-{{ event.id }}">Dátum a čas</label>
+                                            <input id="home-event-edit-datetime-{{ event.id }}" name="event_datetime" type="datetime-local" value="{{ event.event_at_input }}" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="home-event-edit-category-{{ event.id }}">Kategória</label>
+                                            <select id="home-event-edit-category-{{ event.id }}" name="event_category">
+                                                {% for category in home_event_categories %}
+                                                    <option value="{{ category.value }}" {% if category.value == event.kategoria %}selected{% endif %}>{{ category.label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="actions">
+                                            <button class="btn btn-small" type="submit">Uložiť</button>
+                                        </div>
+                                    </form>
+                                </details>
+                            {% endif %}
+                        </div>
+                        <p class="home-event-author">Autor: <a class="profile-link-inline profile-link-inline-text" href="{{ event.author_profile_url }}">{{ event.author }}{% if event.author_is_current_user %} (Vy){% endif %}</a></p>
                         <p class="home-event-date">{{ event.event_at_display }}</p>
                         <p class="home-event-category">{{ event.kategoria_label }}</p>
                         <form method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">
@@ -69,7 +100,38 @@
             <div class="home-event-stickers">
                 {% for event in past_events %}
                     <article class="home-event-sticker {{ event.category_class }} past-event">
-                        <h3>{{ event.nazov }}</h3>
+                        <div class="home-event-sticker-head">
+                            <h3>{{ event.nazov }}</h3>
+                            {% if event.author_is_current_user %}
+                                <details class="home-event-edit-details">
+                                    <summary class="home-event-edit-toggle" aria-label="Upraviť udalosť" title="Upraviť udalosť">✎</summary>
+                                    <form class="home-event-edit-form" method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">
+                                        <input type="hidden" name="event_action" value="edit">
+                                        <input type="hidden" name="event_id" value="{{ event.id }}">
+                                        <div class="field">
+                                            <label for="home-event-edit-name-past-{{ event.id }}">Názov udalosti</label>
+                                            <input id="home-event-edit-name-past-{{ event.id }}" name="event_name" type="text" maxlength="160" value="{{ event.nazov }}" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="home-event-edit-datetime-past-{{ event.id }}">Dátum a čas</label>
+                                            <input id="home-event-edit-datetime-past-{{ event.id }}" name="event_datetime" type="datetime-local" value="{{ event.event_at_input }}" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="home-event-edit-category-past-{{ event.id }}">Kategória</label>
+                                            <select id="home-event-edit-category-past-{{ event.id }}" name="event_category">
+                                                {% for category in home_event_categories %}
+                                                    <option value="{{ category.value }}" {% if category.value == event.kategoria %}selected{% endif %}>{{ category.label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="actions">
+                                            <button class="btn btn-small" type="submit">Uložiť</button>
+                                        </div>
+                                    </form>
+                                </details>
+                            {% endif %}
+                        </div>
+                        <p class="home-event-author">Autor: <a class="profile-link-inline profile-link-inline-text" href="{{ event.author_profile_url }}">{{ event.author }}{% if event.author_is_current_user %} (Vy){% endif %}</a></p>
                         <p class="home-event-date">{{ event.event_at_display }}</p>
                         <p class="home-event-category">{{ event.kategoria_label }}</p>
                         <form method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">
@@ -90,7 +152,38 @@
             <div class="home-event-stickers">
                 {% for event in hidden_events %}
                     <article class="home-event-sticker {{ event.category_class }} is-hidden-event">
-                        <h3>{{ event.nazov }}</h3>
+                        <div class="home-event-sticker-head">
+                            <h3>{{ event.nazov }}</h3>
+                            {% if event.author_is_current_user %}
+                                <details class="home-event-edit-details">
+                                    <summary class="home-event-edit-toggle" aria-label="Upraviť udalosť" title="Upraviť udalosť">✎</summary>
+                                    <form class="home-event-edit-form" method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">
+                                        <input type="hidden" name="event_action" value="edit">
+                                        <input type="hidden" name="event_id" value="{{ event.id }}">
+                                        <div class="field">
+                                            <label for="home-event-edit-name-hidden-{{ event.id }}">Názov udalosti</label>
+                                            <input id="home-event-edit-name-hidden-{{ event.id }}" name="event_name" type="text" maxlength="160" value="{{ event.nazov }}" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="home-event-edit-datetime-hidden-{{ event.id }}">Dátum a čas</label>
+                                            <input id="home-event-edit-datetime-hidden-{{ event.id }}" name="event_datetime" type="datetime-local" value="{{ event.event_at_input }}" required>
+                                        </div>
+                                        <div class="field">
+                                            <label for="home-event-edit-category-hidden-{{ event.id }}">Kategória</label>
+                                            <select id="home-event-edit-category-hidden-{{ event.id }}" name="event_category">
+                                                {% for category in home_event_categories %}
+                                                    <option value="{{ category.value }}" {% if category.value == event.kategoria %}selected{% endif %}>{{ category.label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="actions">
+                                            <button class="btn btn-small" type="submit">Uložiť</button>
+                                        </div>
+                                    </form>
+                                </details>
+                            {% endif %}
+                        </div>
+                        <p class="home-event-author">Autor: <a class="profile-link-inline profile-link-inline-text" href="{{ event.author_profile_url }}">{{ event.author }}{% if event.author_is_current_user %} (Vy){% endif %}</a></p>
                         <p class="home-event-date">{{ event.event_at_display }}</p>
                         <p class="home-event-category">{{ event.kategoria_label }}</p>
                         <form method="post" action="{{ url_for('aplikacia_domov_udalosti') }}">

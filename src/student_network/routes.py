@@ -30,7 +30,7 @@ from student_network.repositories.group_events import (
     get_group_notifications,
     update_group_event,
 )
-from student_network.repositories.group_board_posts import create_group_board_post, get_group_board_posts
+from student_network.repositories.group_board_posts import create_group_board_post, get_group_board_posts, update_group_board_post
 from student_network.repositories.group_files import (
     create_group_file,
     create_group_file_folder,
@@ -449,6 +449,9 @@ def register_routes(app: Flask) -> None:
                 'kategoria_label': HOME_EVENT_CATEGORY_LABELS.get(str(row['kategoria']), 'Iné'),
                 'category_class': f"event-category-{row['kategoria']}",
                 'author': f"{row['author_meno']} {row['author_priezvisko']}",
+                'author_profile_url': _profile_url_for_user(int(row['created_by_user_id'])),
+                'author_is_current_user': int(row['created_by_user_id']) == int(g.user['id']),
+                'event_at_input': event_dt.strftime('%Y-%m-%dT%H:%M'),
                 'is_hidden': bool(row['is_hidden']),
             }
 
@@ -536,6 +539,60 @@ def register_routes(app: Flask) -> None:
                 flash('Udalosť bola skrytá.', 'success')
             else:
                 flash('Udalosť sa opäť zobrazuje.', 'success')
+            return redirect(url_for('aplikacia_domov'))
+
+        if action_type == 'edit':
+            event_id_raw = request.form.get('event_id', '').strip()
+            nazov = request.form.get('event_name', '').strip()
+            event_datetime_raw = request.form.get('event_datetime', '').strip()
+            category = request.form.get('event_category', '').strip().lower()
+
+            try:
+                event_id = int(event_id_raw)
+            except ValueError:
+                flash('Neplatná udalosť.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            event_row = get_home_event_by_id(event_id=event_id)
+            if event_row is None:
+                flash('Udalosť sa nenašla.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            if int(event_row['created_by_user_id']) != int(g.user['id']):
+                abort(403)
+
+            if not nazov:
+                flash('Názov udalosti je povinný.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            if len(nazov) > 160:
+                flash('Názov udalosti môže mať najviac 160 znakov.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            if not event_datetime_raw:
+                flash('Dátum a čas udalosti je povinný.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            if category not in HOME_EVENT_CATEGORY_LABELS:
+                category = 'ine'
+
+            try:
+                parsed_dt = datetime.strptime(event_datetime_raw, '%Y-%m-%dT%H:%M')
+            except ValueError:
+                flash('Neplatný formát dátumu a času udalosti.', 'error')
+                return redirect(url_for('aplikacia_domov'))
+
+            database = get_db()
+            database.execute(
+                """
+                UPDATE home_events
+                SET nazov = ?, event_at = ?, kategoria = ?
+                WHERE id = ?
+                """,
+                (nazov, parsed_dt.strftime('%Y-%m-%d %H:%M:%S'), category, event_id),
+            )
+            database.commit()
+            flash('Udalosť bola upravená.', 'success')
             return redirect(url_for('aplikacia_domov'))
 
         flash('Neplatná akcia udalosti.', 'error')
@@ -941,8 +998,50 @@ def register_routes(app: Flask) -> None:
             return redirect(url_for('aplikacia_skupiny'))
 
         board_type = request.form.get('board_type', '').strip().lower()
+        board_post_id_raw = request.form.get('board_post_id', '').strip()
         title = request.form.get('title', '').strip()
         content = request.form.get('content', '').strip()
+        board_post_id = None
+
+        if request.form.get('board_action', 'create').strip().lower() == 'edit':
+            if board_type not in {'announcement', 'member'}:
+                flash('Neplatný typ nástenky.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+            try:
+                board_post_id = int(board_post_id_raw)
+            except ValueError:
+                flash('Neplatný oznam.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+            post_rows = get_group_board_posts(group_id=group_id, board_type=board_type)
+            target_row = next((row for row in post_rows if int(row['id']) == board_post_id), None)
+            if target_row is None:
+                flash('Oznam sa nenašiel.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+            if int(target_row['author_user_id']) != int(g.user['id']):
+                abort(403)
+
+            if not title:
+                flash('Nadpis je povinný.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+            if len(title) > 140:
+                flash('Nadpis môže mať najviac 140 znakov.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+            if not content:
+                flash('Obsah príspevku je povinný.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+            if len(content) > 1500:
+                flash('Obsah môže mať najviac 1500 znakov.', 'error')
+                return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
+
+            update_group_board_post(post_id=board_post_id, title=title, content=content)
+            flash('Oznam bol upravený.', 'success')
+            return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='hlavna', _anchor='nastenka'))
 
         if board_type not in {'announcement', 'member'}:
             flash('Neplatný typ nástenky.', 'error')
