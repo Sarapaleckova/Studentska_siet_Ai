@@ -1889,6 +1889,15 @@ body.modal-open {
     gap: 12px;
 }
 
+.group-tab-panel {
+    display: block;
+    width: 100%;
+}
+
+.group-tab-panel[hidden] {
+    display: none !important;
+}
+
 .group-tab-panel h2 {
     margin-top: 0;
     color: #0b1f4d;
