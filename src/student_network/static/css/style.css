@@ -8,17 +8,8 @@ body {
     --app-bg-color: #0b1f4d;
     --app-nav-color: #071433;
     --app-bg-image: none;
-        display: flex;
-        gap: 12px;
-        overflow-x: auto;
-        padding: 4px 2px 10px;
-        scroll-snap-type: x proximity;
-        -webkit-overflow-scrolling: touch;
-    display: none !important;
 }
 
-        flex: 0 0 260px;
-        scroll-snap-align: start;
 .page {
     background: #0b1f4d;
 }
@@ -28,15 +19,12 @@ body {
     background:
         radial-gradient(140% 90% at 50% -15%, rgba(33, 96, 218, 0.2) 0%, rgba(33, 96, 218, 0) 60%),
         linear-gradient(160deg, #020919 0%, #06163e 48%, #030d28 100%);
-        margin: 0;
+    margin: 0;
     overflow: hidden;
     isolation: isolate;
 }
 
 .page-home::before,
-        margin: 8px 0 6px;
-        color: #33456d;
-        font-size: 0.84rem;
 .page-form::before,
 .page-home::after,
 .page-form::after {
@@ -47,57 +35,31 @@ body {
 }
 
 .page-home::before,
-        position: relative;
-        flex: 0 0 auto;
 .page-form::before {
     background:
         radial-gradient(125% 52% at -20% 52%, rgba(89, 174, 255, 0.5) 0%, rgba(89, 174, 255, 0.22) 23%, rgba(89, 174, 255, 0) 48%),
-        list-style: none;
         radial-gradient(130% 56% at -25% 60%, rgba(44, 145, 255, 0.45) 0%, rgba(44, 145, 255, 0.18) 24%, rgba(44, 145, 255, 0) 50%),
         radial-gradient(140% 62% at -18% 68%, rgba(29, 117, 240, 0.36) 0%, rgba(29, 117, 240, 0.15) 24%, rgba(29, 117, 240, 0) 52%);
     filter: blur(0.2px);
-        display: none;
 }
 
 .page-home::after,
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 26px;
-        height: 26px;
-        border-radius: 999px;
-        border: 1px solid rgba(12, 28, 58, 0.18);
-        background: rgba(255, 255, 255, 0.92);
-        color: #0b1f4d;
-        cursor: pointer;
-        font-size: 0.9rem;
-        line-height: 1;
 .page-form::after {
     background:
         repeating-radial-gradient(
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px dashed rgba(12, 28, 58, 0.16);
             ellipse 170% 66% at -18% 58%,
             rgba(124, 198, 255, 0.22) 0,
             rgba(124, 198, 255, 0.22) 2px,
-        margin-bottom: 8px;
             rgba(124, 198, 255, 0) 2px,
             rgba(124, 198, 255, 0) 40px
         ),
-        font-size: 0.78rem;
         repeating-radial-gradient(
             ellipse 156% 60% at -26% 66%,
             rgba(92, 173, 255, 0.16) 0,
             rgba(92, 173, 255, 0.16) 1px,
-        min-height: 36px;
-        padding: 8px 10px;
-        font-size: 0.88rem;
             rgba(92, 173, 255, 0) 1px,
             rgba(92, 173, 255, 0) 30px
         ),
-        padding: 7px 12px;
-        min-height: 32px;
         radial-gradient(45% 26% at 12% 54%, rgba(154, 217, 255, 0.16) 0%, rgba(154, 217, 255, 0) 78%),
         radial-gradient(40% 22% at 64% 62%, rgba(86, 169, 255, 0.14) 0%, rgba(86, 169, 255, 0) 82%);
     opacity: 0.56;
@@ -864,12 +826,17 @@ textarea {
 }
 
 .home-event-stickers {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 10px;
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 4px 2px 10px;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
 }
 
 .home-event-sticker {
+    flex: 0 0 260px;
+    scroll-snap-align: start;
     border: 1px solid #d8dfef;
     border-left-width: 8px;
     border-radius: 12px;
@@ -878,10 +845,23 @@ textarea {
     box-shadow: 0 4px 14px rgba(13, 27, 55, 0.08);
 }
 
+.home-event-sticker-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+}
+
 .home-event-sticker h3 {
-    margin: 0 0 8px 0;
+    margin: 0;
     color: #0b1f4d;
     font-size: 1rem;
+}
+
+.home-event-author {
+    margin: 8px 0 6px;
+    color: #33456d;
+    font-size: 0.84rem;
 }
 
 .home-event-date,
@@ -889,6 +869,60 @@ textarea {
     margin: 0 0 6px 0;
     color: #2d426e;
     font-size: 0.88rem;
+}
+
+.home-event-edit-details {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.home-event-edit-details summary {
+    list-style: none;
+}
+
+.home-event-edit-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.home-event-edit-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(12, 28, 58, 0.18);
+    background: rgba(255, 255, 255, 0.92);
+    color: #0b1f4d;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.home-event-edit-form {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(12, 28, 58, 0.16);
+}
+
+.home-event-edit-form .field {
+    margin-bottom: 8px;
+}
+
+.home-event-edit-form label {
+    font-size: 0.78rem;
+}
+
+.home-event-edit-form input,
+.home-event-edit-form select {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+}
+
+.home-event-edit-form .btn-small {
+    padding: 7px 12px;
+    min-height: 32px;
 }
 
 .home-event-pane[hidden] {
@@ -2081,6 +2115,65 @@ body.modal-open {
 }
 
 .group-folder-tabs-wrap {
+.group-announcement-card-head,
+.group-member-note-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: flex-start;
+}
+.group-board-edit-details {
+    position: relative;
+    flex: 0 0 auto;
+}
+.group-board-edit-details summary {
+    list-style: none;
+}
+.group-board-edit-details summary::-webkit-details-marker {
+    display: none;
+}
+.group-board-edit-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(12, 28, 58, 0.18);
+    background: rgba(255, 255, 255, 0.92);
+    color: #0b1f4d;
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+.group-board-edit-form {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed rgba(12, 28, 58, 0.14);
+}
+.group-board-edit-form .field {
+    margin-bottom: 8px;
+}
+.group-board-edit-form label {
+    font-size: 0.78rem;
+}
+.group-board-edit-form input,
+.group-board-edit-form textarea {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 0.88rem;
+}
+.group-board-edit-form .btn-small {
+    padding: 7px 12px;
+    min-height: 32px;
+}
+.group-announcement-meta,
+.group-member-note-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
     margin-top: 14px;
     display: flex;
     align-items: center;
