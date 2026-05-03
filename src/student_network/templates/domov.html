@@ -224,9 +224,15 @@
     <a class="post-card-wide" href="{{ url_for('aplikacia_prispevok_detail', post_id=post.id, post_slug=post.post_slug) }}">
         <div class="post-card-thumbnail">
             {% if post.nahladovy_obrazok_url %}
-                <img src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}" class="post-card-image">
+                {% if post.nahladovy_obrazok_url.startswith('data:') %}
+                    <img src="{{ post.nahladovy_obrazok_url }}" alt="Náhľad príspevku {{ post.nazov }}" class="post-card-image" loading="lazy">
+                {% else %}
+                    <img src="{{ url_for('static', filename=post.nahladovy_obrazok_url) }}" alt="Náhľad príspevku {{ post.nazov }}" class="post-card-image" loading="lazy">
+                {% endif %}
             {% else %}
-                <div class="post-card-placeholder" aria-hidden="true"></div>
+                <div class="post-card-placeholder" aria-hidden="true">
+                    <span class="post-card-file-icon">📄</span>
+                </div>
             {% endif %}
         </div>
         <div class="post-card-info">

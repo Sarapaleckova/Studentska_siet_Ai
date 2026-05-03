@@ -15,6 +15,7 @@ from flask import Flask, abort, flash, g, jsonify, redirect, render_template, re
 from werkzeug.utils import secure_filename
 
 from student_network.db import get_db
+from student_network.thumbnail_service import generate_thumbnail_from_file, get_file_icon_svg
 
 from student_network.file_types import (
     ALLOWED_POST_FILE_EXTENSIONS,
@@ -1876,6 +1877,7 @@ def register_routes(app: Flask) -> None:
         uploaded_file = request.files.get('subor')
         file_relative_path = ''
         file_original_name = ''
+        file_extension = ''
         if not uploaded_file or not uploaded_file.filename:
             errors['subor'] = 'Súbor je povinný.'
         else:
@@ -1902,11 +1904,30 @@ def register_routes(app: Flask) -> None:
                 post_file_types_description=post_file_types_description(),
             )
 
+        # Generate thumbnail if no preview image was uploaded
+        final_preview_path = image_relative_path
+        if not final_preview_path and file_relative_path:
+            # If file is an image, use it as preview
+            if file_extension in {'.jpg', '.jpeg', '.png', '.webp', '.gif'}:
+                final_preview_path = file_relative_path
+            # If file is PDF, try to generate thumbnail
+            elif file_extension == '.pdf':
+                file_full_path = Path(app.config['POST_FILE_UPLOAD_DIR']) / stored_file_name
+                thumbnail_uri = generate_thumbnail_from_file(file_full_path, file_extension)
+                if thumbnail_uri:
+                    final_preview_path = thumbnail_uri
+                else:
+                    # Fallback to SVG icon if PDF conversion fails
+                    final_preview_path = get_file_icon_svg(file_extension)
+            # For other file types, use SVG icon
+            else:
+                final_preview_path = get_file_icon_svg(file_extension)
+
         create_post(
             author_id=int(g.user['id']),
             nazov=values['nazov'],
             popis=values['popis'],
-            nahladovy_obrazok=image_relative_path,
+            nahladovy_obrazok=final_preview_path,
             subor=file_relative_path,
             subor_povodny_nazov=file_original_name,
         )
