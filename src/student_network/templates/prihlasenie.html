@@ -8,7 +8,6 @@
 </head>
 <body class="page page-form">
     <div class="card">
-        <h1>Prihlásenie</h1>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
@@ -18,6 +17,7 @@
         {% endwith %}
 
         <form method="post">
+            <h1 class="form-title">Prihlásenie</h1>
             <div class="field">
                 <label for="email">E-mail</label>
                 <input id="email" name="email" type="text" value="{{ values.email if values else '' }}">
