@@ -963,9 +963,14 @@
 
     // --- group chat client (uses Socket.IO if available) ---
     (function () {
+        console.log('[CHAT] Initializing chat module...');
         const chatSection = document.querySelector('.group-chat-layout');
-        if (!chatSection) return;
-
+        if (!chatSection) {
+            console.log('[CHAT] Chat section not found - skipping');
+            return;
+        }
+        console.log('[CHAT] Chat layout element found');
+        
         const chatList = document.getElementById('chat-list');
         const chatTitle = document.getElementById('chat-title');
         const chatMessages = document.getElementById('chat-messages');
@@ -973,6 +978,12 @@
         const chatSendButton = document.getElementById('chat-send-button');
         const createChatButton = document.getElementById('create-chat-button');
         const newChatName = document.getElementById('new-chat-name');
+        
+        console.log('[CHAT] Element selectors:', {
+            chatList: !!chatList, chatTitle: !!chatTitle, chatMessages: !!chatMessages,
+            chatInput: !!chatInput, chatSendButton: !!chatSendButton,
+            createChatButton: !!createChatButton, newChatName: !!newChatName
+        });
 
         let socket = null;
         let activeChatId = null;
@@ -1030,12 +1041,12 @@
             chatTitle.textContent = titleEl ? titleEl.textContent : 'Chat';
             chatMessages.innerHTML = '';
             if (socket) {
-                if (activeChatId) socket.emit('leave_chat', { chat_id: activeChatId, group_id: {{ group.id }} });
-                socket.emit('join_chat', { chat_id: chatId, group_id: {{ group.id }} });
+                if (activeChatId) socket.emit('leave_chat', { chat_id: activeChatId, group_id: groupId });
+                socket.emit('join_chat', { chat_id: chatId, group_id: groupId });
                 return;
             }
             // fallback: fetch messages via HTTP
-            fetch(`/studentska-siet/skupiny/${{ group.id }}/chats/${chatId}/messages`)
+            fetch(`/studentska-siet/skupiny/${groupId}/chats/${chatId}/messages`)
                 .then(function (r) { return r.json(); })
                 .then(function (payload) {
                     chatMessages.innerHTML = '';
@@ -1058,12 +1069,12 @@
             const text = (chatInput.value || '').trim();
             if (!text || !activeChatId) return;
             if (socket) {
-                socket.emit('send_message', { chat_id: activeChatId, group_id: {{ group.id }}, content: text });
+                socket.emit('send_message', { chat_id: activeChatId, group_id: groupId, content: text });
                 chatInput.value = '';
                 return;
             }
             // fallback: send via HTTP
-            fetch(`/studentska-siet/skupiny/${{ group.id }}/chats/${activeChatId}/messages`, {
+            fetch(`/studentska-siet/skupiny/${groupId}/chats/${activeChatId}/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ content: text }),
@@ -1081,28 +1092,37 @@
         chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendMessage(); });
         createChatButton.addEventListener('click', function () {
             const name = (newChatName.value || '').trim();
+            console.log('[CHAT] Create chat clicked. Name:', name);
             if (socket) {
-                socket.emit('create_chat', { group_id: {{ group.id }}, name: name });
+                socket.emit('create_chat', { group_id: groupId, name: name });
                 newChatName.value = '';
                 return;
             }
             // fallback: create via HTTP
-            fetch(`/studentska-siet/skupiny/${{ group.id }}/chats`, {
+            console.log('[CHAT] Using HTTP fallback to create chat...');
+            fetch(`/studentska-siet/skupiny/${groupId}/chats`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name: name }),
-            }).then(function (r) { if (r.ok) return r.json(); throw new Error('create failed'); })
-              .then(function (payload) {
-                  const li = document.createElement('li');
-                  li.className = 'chat-list-item';
-                  li.dataset.chatId = payload.id;
-                  li.textContent = payload.nazov || 'Chat';
-                  li.addEventListener('click', onChatClick);
-                  const empty = chatList.querySelector('.chat-list-empty');
-                  if (empty) empty.remove();
-                  chatList.appendChild(li);
-                  newChatName.value = '';
-              }).catch(function () {});
+            }).then(function (r) {
+                console.log('[CHAT] Create chat response:', r.status, r.ok);
+                if (r.ok) return r.json();
+                throw new Error('create failed');
+            }).then(function (payload) {
+                console.log('[CHAT] Chat created:', payload);
+                const li = document.createElement('li');
+                li.className = 'chat-list-item';
+                li.dataset.chatId = payload.id;
+                li.textContent = payload.nazov || 'Chat';
+                li.addEventListener('click', onChatClick);
+                const empty = chatList.querySelector('.chat-list-empty');
+                if (empty) empty.remove();
+                chatList.appendChild(li);
+                newChatName.value = '';
+                console.log('[CHAT] Chat item added to list');
+            }).catch(function (err) {
+                console.error('[CHAT] Error creating chat:', err);
+            });
         });
 
         connectSocket();

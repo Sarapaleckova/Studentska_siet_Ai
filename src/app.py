@@ -6,12 +6,5 @@ app = create_app()
 
 
 if __name__ == '__main__':
-    try:
-        from student_network.socketio import socketio
-    except Exception:
-        socketio = None
-
-    if socketio is not None:
-        socketio.run(app, debug=True)
-    else:
-        app.run(debug=True)
+    # Run Flask dev server only (Socket.IO optional for real-time; HTTP fallback works fine)
+    app.run(debug=True)
