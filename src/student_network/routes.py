@@ -1876,7 +1876,9 @@ def register_routes(app: Flask) -> None:
         uploaded_file = request.files.get('subor')
         file_relative_path = ''
         file_original_name = ''
-        if uploaded_file and uploaded_file.filename:
+        if not uploaded_file or not uploaded_file.filename:
+            errors['subor'] = 'Súbor je povinný.'
+        else:
             file_name = secure_filename(uploaded_file.filename)
             file_extension = Path(file_name).suffix.lower()
 
