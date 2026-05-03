@@ -5,8 +5,8 @@
 {% block content %}
 <div class="todo-container">
     <div class="todo-header">
-        <a href="{{ url_for('aplikacia_ucenie') }}" class="back-button" title="Späť na sekciu Učenie">
-            <span>←</span> Späť
+        <a href="{{ url_for('aplikacia_ucenie') }}" class="back-button" title="Návrat na sekciu Učenie" aria-label="Návrat na sekciu Učenie">
+            <span>←</span>
         </a>
         <h1>Moj TODO List</h1>
         <button class="add-task-button" id="addTaskBtn" title="Vytvoriť novú úlohu">
@@ -285,15 +285,18 @@
     .back-button {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 16px;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        padding: 0;
         background-color: #f0f0f0;
         color: #333;
         text-decoration: none;
-        border-radius: 6px;
-        font-size: 0.95rem;
+        border-radius: 999px;
+        font-size: 1.1rem;
         transition: all 0.2s ease;
         border: 1px solid #ddd;
+        flex-shrink: 0;
     }
 
     .back-button:hover {
@@ -302,7 +305,7 @@
     }
 
     .back-button span {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         font-weight: bold;
     }
 

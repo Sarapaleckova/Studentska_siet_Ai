@@ -2035,6 +2035,7 @@ def register_routes(app: Flask) -> None:
                     'id': deck['id'],
                     'name': deck['name'],
                     'description': deck['description'],
+                    'color': deck['color'],
                     'card_count': len(get_cards_for_deck(deck['id'])),
                 }
                 for deck in decks
@@ -2051,12 +2052,13 @@ def register_routes(app: Flask) -> None:
         user_id = int(g.user['id'])
         name = data.get('name', '').strip()
         description = data.get('description', '').strip()
+        color = data.get('color', '#FFE5B4').strip()
 
         if not name:
             return jsonify({'success': False, 'message': 'Názov nemôže byť prázdny'}), 400
 
-        deck_id = create_deck(user_id, name, description)
-        return jsonify({'success': True, 'deck_id': deck_id})
+        deck_id = create_deck(user_id, name, description, color)
+        return jsonify({'success': True, 'deck_id': deck_id, 'color': color})
 
     @app.route(f'{APP_BASE_PATH}/api/decks/<int:deck_id>', methods=['DELETE'])
     @login_required
@@ -2102,12 +2104,11 @@ def register_routes(app: Flask) -> None:
 
         question = data.get('question', '').strip()
         answer = data.get('answer', '').strip()
-        color = data.get('color', '#FFE5B4').strip()
 
         if not question or not answer:
             return jsonify({'success': False, 'message': 'Otázka a odpoveď nemôžu byť prázdne'}), 400
 
-        card_id = create_card(deck_id, question, answer, color)
+        card_id = create_card(deck_id, question, answer)
         return jsonify({'success': True, 'card_id': card_id})
 
     @app.route(f'{APP_BASE_PATH}/api/decks/<int:deck_id>/cards/<int:card_id>', methods=['DELETE'])

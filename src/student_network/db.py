@@ -226,6 +226,7 @@ CREATE TABLE IF NOT EXISTS card_decks (
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
+    color TEXT NOT NULL DEFAULT '#FFE5B4',
     created_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -292,6 +293,7 @@ def init_db() -> None:
     ensure_private_messages_table(database)
     ensure_tasks_table(database)
     ensure_cards_tables(database)
+    ensure_card_deck_color_column(database)
     ensure_seed_groups(database)
     database.commit()
 
@@ -551,6 +553,7 @@ def ensure_cards_tables(database: sqlite3.Connection) -> None:
             user_id INTEGER NOT NULL,
             name TEXT NOT NULL,
             description TEXT NOT NULL DEFAULT '',
+            color TEXT NOT NULL DEFAULT '#FFE5B4',
             created_at TEXT NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
@@ -583,6 +586,16 @@ def ensure_cards_tables(database: sqlite3.Connection) -> None:
         )
         """
     )
+
+
+def ensure_card_deck_color_column(database: sqlite3.Connection) -> None:
+    columns = database.execute("PRAGMA table_info(card_decks)").fetchall()
+    existing_column_names = {column['name'] for column in columns}
+
+    if 'color' not in existing_column_names:
+        database.execute(
+            "ALTER TABLE card_decks ADD COLUMN color TEXT NOT NULL DEFAULT '#FFE5B4'"
+        )
 
 
 def current_database_path() -> str:

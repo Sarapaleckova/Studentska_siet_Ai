@@ -4,6 +4,7 @@
 
 {% block content %}
 <div class="learn-container">
+    <div id="learnApp" data-deck-id="{{ deck.id }}" data-deck-color="{{ deck.color }}">
     <div class="learn-header">
         <a href="{{ url_for('aplikacia_karticky') }}" class="back-button">
             <span>←</span> Späť
@@ -95,14 +96,15 @@
 </div>
 
 <script>
-    const deckId = {{ deck.id }};
+    const learnApp = document.getElementById('learnApp');
+    const deckId = Number(learnApp.dataset.deckId);
+    const deckColor = learnApp.dataset.deckColor || '#FFE5B4';
     let cards = [];
     let currentCardIndex = 0;
     let correctCount = 0;
     let incorrectCount = 0;
     let incorrectCardIds = [];
 
-    // DOM elementy
     const learningMode = document.getElementById('learningMode');
     const resultsMode = document.getElementById('resultsMode');
     const emptyState = document.getElementById('emptyState');
@@ -122,7 +124,6 @@
     const btnRepeatIncorrect = document.getElementById('btnRepeatIncorrect');
     const btnLeave = document.getElementById('btnLeave');
 
-    // Inicializácia
     document.addEventListener('DOMContentLoaded', () => {
         loadCards();
         attachEventListeners();
@@ -186,8 +187,9 @@
 
         front.textContent = escapeHtml(card.question);
         back.textContent = escapeHtml(card.answer);
-
-        flipper.style.backgroundColor = card.color;
+        flipper.style.backgroundColor = deckColor;
+        front.style.background = deckColor;
+        back.style.background = deckColor;
     }
 
     function flipCard() {
@@ -200,9 +202,7 @@
             correctCount++;
         } else {
             incorrectCount++;
-            if (!incorrectCardIds.includes(cards[currentCardIndex].id)) {
-                incorrectCardIds.push(cards[currentCardIndex].id);
-            }
+            incorrectCardIds.push(cards[currentCardIndex].id);
         }
 
         updateStats();
@@ -212,7 +212,7 @@
     function updateStats() {
         correctCountEl.textContent = correctCount;
         incorrectCountEl.textContent = incorrectCount;
-        
+
         const total = correctCount + incorrectCount;
         const rate = total > 0 ? Math.round((correctCount / total) * 100) : 0;
         successRateEl.textContent = rate + '%';
@@ -224,29 +224,26 @@
 
         finalCorrect.textContent = correctCount;
         finalIncorrect.textContent = incorrectCount;
-        
+
         const total = correctCount + incorrectCount;
         const rate = total > 0 ? Math.round((correctCount / total) * 100) : 0;
         finalSuccess.textContent = rate + '%';
 
-        // Zobraziť tlačidlo na opakovanie chybných, ak sú nesprávne
         if (incorrectCount > 0) {
             btnRepeatIncorrect.style.display = 'block';
         }
 
-        // Uložiť výsledok
         saveAttempt();
     }
 
     function resetAndLearn() {
-        cards = cards.map(c => ({ ...c })); // Reset
+        cards = cards.map(c => ({ ...c }));
         startLearning();
         learningMode.style.display = 'block';
         resultsMode.style.display = 'none';
     }
 
     function repeatIncorrect() {
-        // Filtrovať na len chybné kartičky
         const incorrectCards = cards.filter(c => incorrectCardIds.includes(c.id));
         cards = incorrectCards;
         startLearning();
@@ -263,8 +260,7 @@
                 correct_count: correctCount,
                 incorrect_count: incorrectCount,
             }),
-        })
-            .catch(error => console.error('Chyba pri ukladaní výsledkov:', error));
+        }).catch(error => console.error('Chyba pri ukladaní výsledkov:', error));
     }
 
     function escapeHtml(text) {
@@ -674,4 +670,6 @@
         }
     }
 </style>
+    </div>
+</div>
 {% endblock %}

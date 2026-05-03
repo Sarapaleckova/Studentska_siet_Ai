@@ -11,15 +11,16 @@ def create_deck(
     user_id: int,
     name: str,
     description: str = '',
+    color: str = '#FFE5B4',
 ) -> int:
     """Create a new card deck."""
     database = get_db()
     cursor = database.execute(
         """
-        INSERT INTO card_decks (user_id, name, description, created_at)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO card_decks (user_id, name, description, color, created_at)
+        VALUES (?, ?, ?, ?, ?)
         """,
-        (user_id, name, description, datetime.utcnow().isoformat(timespec='seconds')),
+        (user_id, name, description, color, datetime.utcnow().isoformat(timespec='seconds')),
     )
     database.commit()
     return int(cursor.lastrowid)
@@ -66,16 +67,18 @@ def create_card(
     deck_id: int,
     question: str,
     answer: str,
-    color: str = '#FFE5B4',
+    color: Optional[str] = None,
 ) -> int:
     """Create a new card in a deck."""
     database = get_db()
+    deck = get_deck_by_id(deck_id)
+    card_color = color if color is not None else (deck['color'] if deck is not None and deck['color'] else '#FFE5B4')
     cursor = database.execute(
         """
         INSERT INTO cards (deck_id, question, answer, color, created_at)
         VALUES (?, ?, ?, ?, ?)
         """,
-        (deck_id, question, answer, color, datetime.utcnow().isoformat(timespec='seconds')),
+        (deck_id, question, answer, card_color, datetime.utcnow().isoformat(timespec='seconds')),
     )
     database.commit()
     return int(cursor.lastrowid)
