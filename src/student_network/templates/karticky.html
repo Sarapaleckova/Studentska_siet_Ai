@@ -1,0 +1,871 @@
+{% extends 'base_app.html' %}
+
+{% block title %}Kartičky{% endblock %}
+
+{% block content %}
+<div class="cards-container">
+    <div class="cards-header">
+        <a href="{{ url_for('aplikacia_ucenie') }}" class="back-button" title="Späť na sekciu Učenie">
+            <span>←</span> Späť
+        </a>
+        <h1>Kartičky</h1>
+        <div class="header-spacer"></div>
+    </div>
+
+    <div class="cards-content">
+        <!-- Moje kartičky sekcia -->
+        <section class="cards-section my-decks-section">
+            <h2>Moje kartičky</h2>
+            <div id="decksContainer" class="decks-grid">
+                <!-- Balíčky sa budú dynamicky načítavať sem -->
+            </div>
+            <div id="emptyDecks" class="empty-state" style="display: none;">
+                <p>Nemáte vytvorené žiadne balíčky kartičiek.</p>
+            </div>
+        </section>
+
+        <!-- Vytvoriť nové kartičky sekcia -->
+        <section class="cards-section create-deck-section">
+            <h2>Vytvoriť nové kartičky</h2>
+            <div class="create-deck-form">
+                <div class="form-group">
+                    <label for="deckName">Názov balíčka:</label>
+                    <input type="text" id="deckName" placeholder="Mô j vzorový balíček" required>
+                </div>
+                <div class="form-group">
+                    <label for="deckDescription">Popis (nepovinne):</label>
+                    <textarea id="deckDescription" placeholder="Opis balíčka..." rows="3"></textarea>
+                </div>
+                <button class="btn-create-deck" id="createDeckBtn">Vytvoriť balíček</button>
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- Modal pre editáciu balíčka -->
+<div id="deckModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="deckModalTitle">Nový balíček</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <div class="deck-editor">
+            <div class="deck-info">
+                <p id="deckCardCount" class="card-count">Kartičky: 0</p>
+            </div>
+            <div id="cardsContainer" class="cards-list">
+                <!-- Kartičky sa budú dynamicky načítavať sem -->
+            </div>
+            <button class="btn-add-card" id="addCardBtn">+ Pridať kartičku</button>
+            <div class="modal-buttons">
+                <button class="btn-primary" id="saveDeckBtn">Hotovo</button>
+                <button class="btn-danger" id="deleteDeckBtn">Vymazať balíček</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pre pridávanie kartičky -->
+<div id="cardModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Nová kartička</h2>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="cardForm" class="card-form">
+            <div class="form-group">
+                <label for="cardQuestion">Otázka:</label>
+                <textarea id="cardQuestion" placeholder="Čo je otázka?" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="cardAnswer">Odpoveď:</label>
+                <textarea id="cardAnswer" placeholder="Čo je odpoveď?" required></textarea>
+            </div>
+            <div class="form-group">
+                <label for="cardColor">Farba kartičky:</label>
+                <div class="color-picker">
+                    <input type="color" id="cardColor" title="Vyberte farbu">
+                    <div class="color-presets">
+                        <button type="button" class="color-btn" style="background-color: #FFE5B4;" data-color="#FFE5B4" title="Béžová"></button>
+                        <button type="button" class="color-btn" style="background-color: #FFB6C1;" data-color="#FFB6C1" title="Ružová"></button>
+                        <button type="button" class="color-btn" style="background-color: #ADD8E6;" data-color="#ADD8E6" title="Modrá"></button>
+                        <button type="button" class="color-btn" style="background-color: #90EE90;" data-color="#90EE90" title="Zelená"></button>
+                        <button type="button" class="color-btn" style="background-color: #FFD700;" data-color="#FFD700" title="Zlatá"></button>
+                        <button type="button" class="color-btn" style="background-color: #DDA0DD;" data-color="#DDA0DD" title="Fialová"></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="btn-primary">Uložiť kartičku</button>
+                <button type="button" class="btn-secondary" id="cancelCardBtn">Zrušiť</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let decks = [];
+    let currentDeckId = null;
+    let currentCards = [];
+    let currentEditingCardId = null;
+
+    // DOM elementy
+    const decksContainer = document.getElementById('decksContainer');
+    const emptyDecks = document.getElementById('emptyDecks');
+    const deckNameInput = document.getElementById('deckName');
+    const deckDescriptionInput = document.getElementById('deckDescription');
+    const createDeckBtn = document.getElementById('createDeckBtn');
+    const deckModal = document.getElementById('deckModal');
+    const deckModalTitle = document.getElementById('deckModalTitle');
+    const cardModal = document.getElementById('cardModal');
+    const cardsContainer = document.getElementById('cardsContainer');
+    const addCardBtn = document.getElementById('addCardBtn');
+    const cardForm = document.getElementById('cardForm');
+    const cardQuestion = document.getElementById('cardQuestion');
+    const cardAnswer = document.getElementById('cardAnswer');
+    const cardColor = document.getElementById('cardColor');
+    const deckCardCount = document.getElementById('deckCardCount');
+    const saveDeckBtn = document.getElementById('saveDeckBtn');
+    const deleteDeckBtn = document.getElementById('deleteDeckBtn');
+    const cancelCardBtn = document.getElementById('cancelCardBtn');
+
+    // Inicializácia
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDecks();
+        attachEventListeners();
+    });
+
+    function attachEventListeners() {
+        createDeckBtn.addEventListener('click', createNewDeck);
+        addCardBtn.addEventListener('click', () => openCardModal(null));
+        cardForm.addEventListener('submit', saveCard);
+        cancelCardBtn.addEventListener('click', closeCardModal);
+        saveDeckBtn.addEventListener('click', closeDeckModal);
+        deleteDeckBtn.addEventListener('click', deleteDeck);
+
+        // Modal closing
+        document.querySelectorAll('.close-modal').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.target.closest('.modal').style.display = 'none';
+            });
+        });
+
+        deckModal.addEventListener('click', (e) => {
+            if (e.target === deckModal) deckModal.style.display = 'none';
+        });
+
+        cardModal.addEventListener('click', (e) => {
+            if (e.target === cardModal) closeCardModal();
+        });
+
+        // Farby
+        document.querySelectorAll('.color-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                cardColor.value = btn.dataset.color;
+            });
+        });
+    }
+
+    function loadDecks() {
+        fetch('{{ url_for("api_get_decks") }}')
+            .then(response => response.json())
+            .then(data => {
+                decks = data.decks || [];
+                renderDecks();
+            })
+            .catch(error => console.error('Chyba pri načítaní balíčkov:', error));
+    }
+
+    function renderDecks() {
+        decksContainer.innerHTML = '';
+
+        if (decks.length === 0) {
+            emptyDecks.style.display = 'block';
+            return;
+        }
+
+        emptyDecks.style.display = 'none';
+
+        decks.forEach(deck => {
+            const deckCard = document.createElement('div');
+            deckCard.className = 'deck-card';
+            deckCard.innerHTML = `
+                <div class="deck-card-content">
+                    <h3>${escapeHtml(deck.name)}</h3>
+                    <p class="deck-meta">${deck.card_count} kartičiek</p>
+                    ${deck.description ? `<p class="deck-desc">${escapeHtml(deck.description)}</p>` : ''}
+                </div>
+                <div class="deck-actions">
+                    <button class="btn-learn" data-deck-id="${deck.id}" title="Učiť sa">Učiť sa</button>
+                    <button class="btn-edit" data-deck-id="${deck.id}" title="Upraviť">✎</button>
+                </div>
+            `;
+
+            deckCard.querySelector('.btn-learn').addEventListener('click', () => {
+                window.location.href = `{{ url_for('aplikacia_karticky_learn', deck_id=0) }}`.replace('/0', `/${deck.id}`);
+            });
+
+            deckCard.querySelector('.btn-edit').addEventListener('click', () => {
+                openDeckModal(deck.id);
+            });
+
+            decksContainer.appendChild(deckCard);
+        });
+    }
+
+    function createNewDeck() {
+        const name = deckNameInput.value.trim();
+        const description = deckDescriptionInput.value.trim();
+
+        if (!name) {
+            alert('Názov balíčka je povinný');
+            return;
+        }
+
+        fetch('{{ url_for("api_create_deck") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description }),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    deckNameInput.value = '';
+                    deckDescriptionInput.value = '';
+                    openDeckModal(result.deck_id);
+                    loadDecks();
+                } else {
+                    alert('Chyba: ' + result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Chyba pri vytváraní balíčka:', error);
+                alert('Chyba pri vytváraní balíčka');
+            });
+    }
+
+    function openDeckModal(deckId) {
+        currentDeckId = deckId;
+        currentEditingCardId = null;
+        loadDeckCards(deckId);
+        deckModal.style.display = 'block';
+    }
+
+    function closeDeckModal() {
+        deckModal.style.display = 'none';
+        currentDeckId = null;
+        currentCards = [];
+    }
+
+    function loadDeckCards(deckId) {
+        const deck = decks.find(d => d.id === deckId);
+        deckModalTitle.textContent = deck ? deck.name : 'Balíček';
+        deckCardCount.textContent = `Kartičky: 0`;
+
+        fetch(`{{ url_for("api_get_cards", deck_id=0) }}`.replace('/0', `/${deckId}`))
+            .then(response => response.json())
+            .then(data => {
+                currentCards = data.cards || [];
+                renderCards();
+            })
+            .catch(error => console.error('Chyba pri načítaní kartičiek:', error));
+    }
+
+    function renderCards() {
+        cardsContainer.innerHTML = '';
+        deckCardCount.textContent = `Kartičky: ${currentCards.length}`;
+
+        currentCards.forEach(card => {
+            const cardEl = document.createElement('div');
+            cardEl.className = 'card-item';
+            cardEl.style.backgroundColor = card.color;
+            cardEl.innerHTML = `
+                <div class="card-item-content">
+                    <p class="card-q"><strong>Q:</strong> ${escapeHtml(card.question.substring(0, 50))}...</p>
+                    <p class="card-a"><strong>A:</strong> ${escapeHtml(card.answer.substring(0, 50))}...</p>
+                </div>
+                <button class="btn-delete-card" data-card-id="${card.id}" title="Vymazať">✕</button>
+            `;
+
+            cardEl.querySelector('.btn-delete-card').addEventListener('click', () => {
+                deleteCard(card.id);
+            });
+
+            cardsContainer.appendChild(cardEl);
+        });
+    }
+
+    function openCardModal(cardId) {
+        currentEditingCardId = cardId;
+        cardQuestion.value = '';
+        cardAnswer.value = '';
+        cardColor.value = '#FFE5B4';
+
+        cardModal.style.display = 'block';
+        cardQuestion.focus();
+    }
+
+    function closeCardModal() {
+        cardModal.style.display = 'none';
+        currentEditingCardId = null;
+        cardForm.reset();
+    }
+
+    function saveCard(e) {
+        e.preventDefault();
+
+        const question = cardQuestion.value.trim();
+        const answer = cardAnswer.value.trim();
+        const color = cardColor.value;
+
+        if (!question || !answer) {
+            alert('Otázka a odpoveď sú povinné');
+            return;
+        }
+
+        fetch(`{{ url_for("api_create_card", deck_id=0) }}`.replace('/0', `/${currentDeckId}`), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, answer, color }),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    loadDeckCards(currentDeckId);
+                    closeCardModal();
+                } else {
+                    alert('Chyba: ' + result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Chyba pri ukladaní kartičky:', error);
+                alert('Chyba pri ukladaní kartičky');
+            });
+    }
+
+    function deleteCard(cardId) {
+        if (!confirm('Naozaj chcete vymazať túto kartičku?')) return;
+
+        fetch(`{{ url_for("api_delete_card", deck_id=0, card_id=0) }}`.replace('/0/', `/${currentDeckId}/`).replace('/0', `/${cardId}`), {
+            method: 'DELETE',
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    loadDeckCards(currentDeckId);
+                }
+            })
+            .catch(error => console.error('Chyba pri vymazávaní kartičky:', error));
+    }
+
+    function deleteDeck() {
+        if (!confirm('Naozaj chcete vymazať tento balíček?')) return;
+
+        fetch(`{{ url_for("api_delete_deck", deck_id=0) }}`.replace('/0', `/${currentDeckId}`), {
+            method: 'DELETE',
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    loadDecks();
+                    closeDeckModal();
+                }
+            })
+            .catch(error => console.error('Chyba pri vymazávaní balíčka:', error));
+    }
+
+    function escapeHtml(text) {
+        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+</script>
+
+<style>
+    .cards-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .cards-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .cards-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .header-spacer {
+        flex: 1;
+    }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background-color: #f0f0f0;
+        color: #333;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        border: 1px solid #ddd;
+    }
+
+    .back-button:hover {
+        background-color: #e0e0e0;
+        transform: translateX(-2px);
+    }
+
+    .back-button span {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .cards-content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+    }
+
+    .cards-section {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cards-section h2 {
+        margin-top: 0;
+        margin-bottom: 20px;
+        font-size: 1.5rem;
+        color: #333;
+    }
+
+    .decks-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .deck-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f5f5f5 100%);
+        border: 2px solid #e0e0e0;
+        border-radius: 12px;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .deck-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+        border-color: #4CAF50;
+    }
+
+    .deck-card-content {
+        flex: 1;
+    }
+
+    .deck-card h3 {
+        margin: 0 0 8px 0;
+        font-size: 1.1rem;
+        color: #333;
+    }
+
+    .deck-meta {
+        margin: 0 0 8px 0;
+        font-size: 0.85rem;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .deck-desc {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #777;
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .deck-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-learn,
+    .btn-edit {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.85rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-learn {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .btn-learn:hover {
+        background-color: #45a049;
+    }
+
+    .btn-edit {
+        background-color: #2196F3;
+        color: white;
+    }
+
+    .btn-edit:hover {
+        background-color: #0b7dda;
+    }
+
+    .empty-state {
+        padding: 40px 20px;
+        text-align: center;
+        color: #999;
+        font-style: italic;
+    }
+
+    .create-deck-form {
+        background: #f9f9f9;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: border-color 0.2s ease;
+        font-family: inherit;
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    }
+
+    .color-picker {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    #cardColor {
+        width: 50px;
+        height: 40px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .color-presets {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .color-btn {
+        width: 30px;
+        height: 30px;
+        border: 2px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .color-btn:hover {
+        transform: scale(1.1);
+        border-color: #333;
+    }
+
+    .btn-create-deck {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    .btn-create-deck:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    }
+
+    /* Modal styles */
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        color: #999;
+        transition: color 0.2s ease;
+    }
+
+    .close-modal:hover {
+        color: #333;
+    }
+
+    .deck-editor {
+        padding: 20px;
+    }
+
+    .deck-info {
+        margin-bottom: 20px;
+        padding: 12px;
+        background: #f0f8f0;
+        border-radius: 4px;
+    }
+
+    .card-count {
+        margin: 0;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .cards-list {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .card-item {
+        padding: 12px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        opacity: 0.9;
+    }
+
+    .card-item-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .card-q,
+    .card-a {
+        margin: 0 0 4px 0;
+        font-size: 0.8rem;
+        line-height: 1.2;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .btn-delete-card {
+        background: rgba(244, 67, 54, 0.8);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: background 0.2s ease;
+    }
+
+    .btn-delete-card:hover {
+        background: #f44336;
+    }
+
+    .btn-add-card {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 12px;
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-add-card:hover {
+        background-color: #0b7dda;
+    }
+
+    .card-form {
+        padding: 20px;
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 20px;
+    }
+
+    .btn-primary,
+    .btn-secondary,
+    .btn-danger {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #45a049;
+    }
+
+    .btn-secondary {
+        background-color: #f0f0f0;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+        background-color: #e0e0e0;
+    }
+
+    .btn-danger {
+        background-color: #f44336;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: #da190b;
+    }
+
+    @media (max-width: 1024px) {
+        .cards-content {
+            grid-template-columns: 1fr;
+            gap: 30px;
+        }
+
+        .decks-grid {
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        }
+
+        .cards-list {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .cards-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .cards-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .back-button {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .decks-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}

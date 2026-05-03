@@ -90,6 +90,20 @@ from student_network.repositories.tasks import (
     toggle_task_completion,
     update_task,
 )
+from student_network.repositories.cards import (
+    create_attempt,
+    create_card,
+    create_deck,
+    delete_card,
+    delete_deck,
+    get_card_by_id,
+    get_cards_for_deck,
+    get_deck_attempts,
+    get_deck_by_id,
+    get_decks_for_user,
+    update_card,
+    update_deck,
+)
 from student_network.repositories.users import get_user_by_id, search_users_by_name, update_user_name
 from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
@@ -1987,6 +2001,147 @@ def register_routes(app: Flask) -> None:
 
         toggle_task_completion(task_id)
         return jsonify({'success': True})
+
+    @app.route(f'{APP_BASE_PATH}/karticky')
+    @login_required
+    def aplikacia_karticky() -> str:
+        return render_template(
+            'karticky.html',
+            active_tab='ucenie',
+        )
+
+    @app.route(f'{APP_BASE_PATH}/karticky/<int:deck_id>')
+    @login_required
+    def aplikacia_karticky_learn(deck_id: int) -> str:
+        deck = get_deck_by_id(deck_id)
+        if not deck or deck['user_id'] != int(g.user['id']):
+            flash('Balíček sa nenašiel.', 'error')
+            return redirect(url_for('aplikacia_karticky'))
+        return render_template(
+            'karticky_learn.html',
+            deck=deck,
+            active_tab='ucenie',
+        )
+
+    @app.route(f'{APP_BASE_PATH}/api/decks', methods=['GET'])
+    @login_required
+    def api_get_decks():
+        user_id = int(g.user['id'])
+        decks = get_decks_for_user(user_id)
+        return jsonify({
+            'success': True,
+            'decks': [
+                {
+                    'id': deck['id'],
+                    'name': deck['name'],
+                    'description': deck['description'],
+                    'card_count': len(get_cards_for_deck(deck['id'])),
+                }
+                for deck in decks
+            ]
+        })
+
+    @app.route(f'{APP_BASE_PATH}/api/decks', methods=['POST'])
+    @login_required
+    def api_create_deck():
+        data = request.get_json()
+        if not data or 'name' not in data:
+            return jsonify({'success': False, 'message': 'Názov je povinný'}), 400
+
+        user_id = int(g.user['id'])
+        name = data.get('name', '').strip()
+        description = data.get('description', '').strip()
+
+        if not name:
+            return jsonify({'success': False, 'message': 'Názov nemôže byť prázdny'}), 400
+
+        deck_id = create_deck(user_id, name, description)
+        return jsonify({'success': True, 'deck_id': deck_id})
+
+    @app.route(f'{APP_BASE_PATH}/api/decks/<int:deck_id>', methods=['DELETE'])
+    @login_required
+    def api_delete_deck(deck_id: int):
+        deck = get_deck_by_id(deck_id)
+        if not deck or deck['user_id'] != int(g.user['id']):
+            return jsonify({'success': False, 'message': 'Balíček sa nenašiel'}), 404
+
+        delete_deck(deck_id)
+        return jsonify({'success': True})
+
+    @app.route(f'{APP_BASE_PATH}/api/decks/<int:deck_id>/cards', methods=['GET'])
+    @login_required
+    def api_get_cards(deck_id: int):
+        deck = get_deck_by_id(deck_id)
+        if not deck or deck['user_id'] != int(g.user['id']):
+            return jsonify({'success': False, 'message': 'Balíček sa nenašiel'}), 404
+
+        cards = get_cards_for_deck(deck_id)
+        return jsonify({
+            'success': True,
+            'cards': [
+                {
+                    'id': card['id'],
+                    'question': card['question'],
+                    'answer': card['answer'],
+                    'color': card['color'],
+                }
+                for card in cards
+            ]
+        })
+
+    @app.route(f'{APP_BASE_PATH}/api/decks/<int:deck_id>/cards', methods=['POST'])
+    @login_required
+    def api_create_card(deck_id: int):
+        deck = get_deck_by_id(deck_id)
+        if not deck or deck['user_id'] != int(g.user['id']):
+            return jsonify({'success': False, 'message': 'Balíček sa nenašiel'}), 404
+
+        data = request.get_json()
+        if not data or 'question' not in data or 'answer' not in data:
+            return jsonify({'success': False, 'message': 'Otázka a odpoveď sú povinné'}), 400
+
+        question = data.get('question', '').strip()
+        answer = data.get('answer', '').strip()
+        color = data.get('color', '#FFE5B4').strip()
+
+        if not question or not answer:
+            return jsonify({'success': False, 'message': 'Otázka a odpoveď nemôžu byť prázdne'}), 400
+
+        card_id = create_card(deck_id, question, answer, color)
+        return jsonify({'success': True, 'card_id': card_id})
+
+    @app.route(f'{APP_BASE_PATH}/api/decks/<int:deck_id>/cards/<int:card_id>', methods=['DELETE'])
+    @login_required
+    def api_delete_card(deck_id: int, card_id: int):
+        deck = get_deck_by_id(deck_id)
+        if not deck or deck['user_id'] != int(g.user['id']):
+            return jsonify({'success': False, 'message': 'Balíček sa nenašiel'}), 404
+
+        card = get_card_by_id(card_id)
+        if not card or card['deck_id'] != deck_id:
+            return jsonify({'success': False, 'message': 'Kartička sa nenašla'}), 404
+
+        delete_card(card_id)
+        return jsonify({'success': True})
+
+    @app.route(f'{APP_BASE_PATH}/api/attempts', methods=['POST'])
+    @login_required
+    def api_save_attempt():
+        data = request.get_json()
+        if not data or 'deck_id' not in data:
+            return jsonify({'success': False, 'message': 'Údaje sú povinné'}), 400
+
+        deck_id = data.get('deck_id')
+        correct_count = data.get('correct_count', 0)
+        incorrect_count = data.get('incorrect_count', 0)
+
+        deck = get_deck_by_id(deck_id)
+        if not deck or deck['user_id'] != int(g.user['id']):
+            return jsonify({'success': False, 'message': 'Balíček sa nenašiel'}), 404
+
+        user_id = int(g.user['id'])
+        attempt_id = create_attempt(deck_id, user_id, correct_count, incorrect_count)
+        return jsonify({'success': True, 'attempt_id': attempt_id})
 
     @app.route(f'{APP_BASE_PATH}/prispevky/<int:post_id>/<post_slug>', methods=['GET', 'POST'])
     @login_required

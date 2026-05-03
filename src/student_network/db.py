@@ -220,6 +220,36 @@ CREATE TABLE IF NOT EXISTS user_tasks (
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS card_decks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    deck_id INTEGER NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT '#FFE5B4',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (deck_id) REFERENCES card_decks(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS card_attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    deck_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    correct_count INTEGER NOT NULL DEFAULT 0,
+    incorrect_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (deck_id) REFERENCES card_decks(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 
@@ -261,6 +291,7 @@ def init_db() -> None:
     ensure_group_chat_tables(database)
     ensure_private_messages_table(database)
     ensure_tasks_table(database)
+    ensure_cards_tables(database)
     ensure_seed_groups(database)
     database.commit()
 
@@ -506,6 +537,48 @@ def ensure_tasks_table(database: sqlite3.Connection) -> None:
             deadline TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+        """
+    )
+
+
+def ensure_cards_tables(database: sqlite3.Connection) -> None:
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS card_decks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            name TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+        """
+    )
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS cards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deck_id INTEGER NOT NULL,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            color TEXT NOT NULL DEFAULT '#FFE5B4',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (deck_id) REFERENCES card_decks(id) ON DELETE CASCADE
+        )
+        """
+    )
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS card_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deck_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            correct_count INTEGER NOT NULL DEFAULT 0,
+            incorrect_count INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (deck_id) REFERENCES card_decks(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
         )
         """
