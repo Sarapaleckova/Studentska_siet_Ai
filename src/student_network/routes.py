@@ -11,7 +11,7 @@ import sqlite3
 import unicodedata
 from uuid import uuid4
 
-from flask import Flask, abort, flash, g, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Flask, abort, flash, g, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
 
 from student_network.db import get_db
@@ -82,6 +82,14 @@ from student_network.repositories.profiles import (
 )
 from student_network.repositories.posts import create_post, delete_post, get_all_posts, get_post_by_id, get_posts_by_author_id, search_posts, update_post
 from student_network.repositories.ratings import get_user_post_rating, upsert_post_rating
+from student_network.repositories.tasks import (
+    create_task,
+    delete_task,
+    get_task_by_id,
+    get_tasks_for_user,
+    toggle_task_completion,
+    update_task,
+)
 from student_network.repositories.users import get_user_by_id, search_users_by_name, update_user_name
 from student_network.services.auth_service import register_user, validate_login
 from student_network.services.profile_service import profile_form_values, profile_values_from_row, validate_profile
@@ -1896,6 +1904,89 @@ def register_routes(app: Flask) -> None:
             'ucenie.html',
             active_tab='ucenie',
         )
+
+    @app.route(f'{APP_BASE_PATH}/todo-list')
+    @login_required
+    def aplikacia_todo_list() -> str:
+        return render_template(
+            'todo_list.html',
+            active_tab='ucenie',
+        )
+
+    @app.route(f'{APP_BASE_PATH}/api/tasks', methods=['GET'])
+    @login_required
+    def api_get_tasks():
+        user_id = int(g.user['id'])
+        tasks = get_tasks_for_user(user_id)
+        return jsonify({
+            'success': True,
+            'tasks': [
+                {
+                    'id': task['id'],
+                    'text': task['text'],
+                    'is_completed': bool(task['is_completed']),
+                    'deadline': task['deadline'],
+                }
+                for task in tasks
+            ]
+        })
+
+    @app.route(f'{APP_BASE_PATH}/api/tasks', methods=['POST'])
+    @login_required
+    def api_create_task():
+        data = request.get_json()
+        if not data or 'text' not in data:
+            return jsonify({'success': False, 'message': 'Text je povinný'}), 400
+
+        user_id = int(g.user['id'])
+        text = data.get('text', '').strip()
+        deadline = data.get('deadline')
+
+        if not text:
+            return jsonify({'success': False, 'message': 'Text úlohy nemôže byť prázdny'}), 400
+
+        task_id = create_task(user_id, text, deadline)
+        return jsonify({'success': True, 'task_id': task_id})
+
+    @app.route(f'{APP_BASE_PATH}/api/tasks/<int:task_id>', methods=['PUT'])
+    @login_required
+    def api_update_task(task_id: int):
+        task = get_task_by_id(task_id)
+        if not task or task['user_id'] != int(g.user['id']):
+            return jsonify({'success': False, 'message': 'Úloha sa nenašla'}), 404
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'Žiadne údaje'}), 400
+
+        text = data.get('text', task['text']).strip()
+        deadline = data.get('deadline', task['deadline'])
+
+        if not text:
+            return jsonify({'success': False, 'message': 'Text úlohy nemôže byť prázdny'}), 400
+
+        update_task(task_id, text=text, deadline=deadline)
+        return jsonify({'success': True})
+
+    @app.route(f'{APP_BASE_PATH}/api/tasks/<int:task_id>', methods=['DELETE'])
+    @login_required
+    def api_delete_task(task_id: int):
+        task = get_task_by_id(task_id)
+        if not task or task['user_id'] != int(g.user['id']):
+            return jsonify({'success': False, 'message': 'Úloha sa nenašla'}), 404
+
+        delete_task(task_id)
+        return jsonify({'success': True})
+
+    @app.route(f'{APP_BASE_PATH}/api/tasks/<int:task_id>/toggle', methods=['PUT'])
+    @login_required
+    def api_toggle_task(task_id: int):
+        task = get_task_by_id(task_id)
+        if not task or task['user_id'] != int(g.user['id']):
+            return jsonify({'success': False, 'message': 'Úloha sa nenašla'}), 404
+
+        toggle_task_completion(task_id)
+        return jsonify({'success': True})
 
     @app.route(f'{APP_BASE_PATH}/prispevky/<int:post_id>/<post_slug>', methods=['GET', 'POST'])
     @login_required

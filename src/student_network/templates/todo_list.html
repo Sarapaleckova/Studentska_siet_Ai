@@ -1,0 +1,676 @@
+{% extends 'base_app.html' %}
+
+{% block title %}TODO List{% endblock %}
+
+{% block content %}
+<div class="todo-container">
+    <div class="todo-header">
+        <a href="{{ url_for('aplikacia_ucenie') }}" class="back-button" title="Späť na sekciu Učenie">
+            <span>←</span> Späť
+        </a>
+        <h1>Moj TODO List</h1>
+        <button class="add-task-button" id="addTaskBtn" title="Vytvoriť novú úlohu">
+            <span>+</span> Nová úloha
+        </button>
+    </div>
+
+    <div class="todo-notebook">
+        <div class="notebook-lines">
+            <div id="tasksList" class="tasks-list">
+                <!-- Úlohy sa budú dynamicky načítavať sem -->
+            </div>
+            <div id="emptyState" class="empty-state">
+                <p>Žiadne úlohy. Vytvorme prvú!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal pre pridávanie/úpravu úlohy -->
+<div id="taskModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Nová úloha</h2>
+            <button class="close-modal" id="closeModal">&times;</button>
+        </div>
+        <form id="taskForm" class="task-form">
+            <div class="form-group">
+                <label for="taskText">Popis úlohy:</label>
+                <input type="text" id="taskText" placeholder="Čo treba vykonať?" required>
+            </div>
+            <div class="form-group">
+                <label for="taskDeadline">Deadline (nepovinne):</label>
+                <input type="datetime-local" id="taskDeadline">
+            </div>
+            <div class="modal-buttons">
+                <button type="submit" class="btn-primary">Uložiť</button>
+                <button type="button" class="btn-secondary" id="cancelBtn">Zrušiť</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Stav aplikácie
+    let tasks = [];
+    let currentEditingTaskId = null;
+
+    // DOM elementy
+    const tasksList = document.getElementById('tasksList');
+    const emptyState = document.getElementById('emptyState');
+    const addTaskBtn = document.getElementById('addTaskBtn');
+    const taskModal = document.getElementById('taskModal');
+    const taskForm = document.getElementById('taskForm');
+    const taskText = document.getElementById('taskText');
+    const taskDeadline = document.getElementById('taskDeadline');
+    const modalTitle = document.getElementById('modalTitle');
+    const closeModal = document.getElementById('closeModal');
+    const cancelBtn = document.getElementById('cancelBtn');
+
+    // Inicializácia
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTasks();
+        attachEventListeners();
+    });
+
+    function attachEventListeners() {
+        addTaskBtn.addEventListener('click', () => openModal(null));
+        closeModal.addEventListener('click', () => closeTaskModal());
+        cancelBtn.addEventListener('click', () => closeTaskModal());
+        taskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            saveTask();
+        });
+        taskModal.addEventListener('click', (e) => {
+            if (e.target === taskModal) closeTaskModal();
+        });
+    }
+
+    function loadTasks() {
+        fetch('{{ url_for("api_get_tasks") }}')
+            .then(response => response.json())
+            .then(data => {
+                tasks = data.tasks || [];
+                renderTasks();
+            })
+            .catch(error => console.error('Chyba pri načítaní úloh:', error));
+    }
+
+    function renderTasks() {
+        tasksList.innerHTML = '';
+        
+        if (tasks.length === 0) {
+            emptyState.style.display = 'block';
+            return;
+        }
+
+        emptyState.style.display = 'none';
+
+        // Rozdeliť na dokončené a nedokončené
+        const incompleteTasks = tasks.filter(t => !t.is_completed);
+        const completedTasks = tasks.filter(t => t.is_completed);
+        
+        // Renderovať nedokončené úlohy
+        incompleteTasks.forEach(task => renderTaskElement(task));
+        // Renderovať dokončené úlohy
+        completedTasks.forEach(task => renderTaskElement(task));
+    }
+
+    function renderTaskElement(task) {
+        const taskEl = document.createElement('div');
+        taskEl.className = `task-item ${task.is_completed ? 'completed' : ''}`;
+        taskEl.id = `task-${task.id}`;
+
+        // Formátovať deadline ak existuje
+        let deadlineHtml = '';
+        if (task.deadline) {
+            const deadlineDate = new Date(task.deadline);
+            deadlineHtml = `<span class="deadline-indicator" title="Deadline: ${deadlineDate.toLocaleString('sk-SK')}" data-deadline="${task.deadline}">●</span>`;
+        }
+
+        const completedClass = task.is_completed ? 'checked' : '';
+
+        taskEl.innerHTML = `
+            <div class="task-content">
+                <input type="checkbox" class="task-checkbox ${completedClass}" data-task-id="${task.id}" ${task.is_completed ? 'checked' : ''}>
+                <span class="task-text ${task.is_completed ? 'done' : ''}">${escapeHtml(task.text)}</span>
+                ${deadlineHtml}
+            </div>
+            <div class="task-actions">
+                <button class="btn-edit" data-task-id="${task.id}" title="Upraviť úlohu">✎</button>
+                <button class="btn-delete" data-task-id="${task.id}" title="Vymazať úlohu">✕</button>
+            </div>
+        `;
+
+        // Event listenery
+        taskEl.querySelector('.task-checkbox').addEventListener('change', () => toggleTask(task.id));
+        taskEl.querySelector('.btn-edit').addEventListener('click', () => openModal(task.id));
+        taskEl.querySelector('.btn-delete').addEventListener('click', () => deleteTask(task.id));
+
+        tasksList.appendChild(taskEl);
+    }
+
+    function openModal(taskId) {
+        currentEditingTaskId = taskId;
+        taskText.value = '';
+        taskDeadline.value = '';
+
+        if (taskId === null) {
+            modalTitle.textContent = 'Nová úloha';
+            taskText.focus();
+        } else {
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                modalTitle.textContent = 'Upraviť úlohu';
+                taskText.value = task.text;
+                if (task.deadline) {
+                    // Konvertovať na formát pre input
+                    taskDeadline.value = task.deadline.replace(' ', 'T');
+                }
+                taskText.focus();
+            }
+        }
+
+        taskModal.style.display = 'block';
+    }
+
+    function closeTaskModal() {
+        taskModal.style.display = 'none';
+        currentEditingTaskId = null;
+        taskForm.reset();
+    }
+
+    function saveTask() {
+        const text = taskText.value.trim();
+        if (!text) return;
+
+        const deadline = taskDeadline.value ? taskDeadline.value.replace('T', ' ') : null;
+
+        const method = currentEditingTaskId ? 'PUT' : 'POST';
+        const url = currentEditingTaskId
+            ? `{{ url_for("api_update_task", task_id=0) }}`.replace('/0', `/${currentEditingTaskId}`)
+            : '{{ url_for("api_create_task") }}';
+
+        const data = { text, deadline };
+
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    loadTasks();
+                    closeTaskModal();
+                } else {
+                    alert('Chyba: ' + (result.message || 'Neznáma chyba'));
+                }
+            })
+            .catch(error => {
+                console.error('Chyba pri ukladaní úlohy:', error);
+                alert('Chyba pri ukladaní úlohy');
+            });
+    }
+
+    function toggleTask(taskId) {
+        fetch(`{{ url_for("api_toggle_task", task_id=0) }}`.replace('/0', `/${taskId}`), {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const task = tasks.find(t => t.id === taskId);
+                    if (task) {
+                        task.is_completed = !task.is_completed;
+                        renderTasks();
+                    }
+                }
+            })
+            .catch(error => console.error('Chyba pri zmene úlohy:', error));
+    }
+
+    function deleteTask(taskId) {
+        if (!confirm('Naozaj chcete vymazať túto úlohu?')) return;
+
+        fetch(`{{ url_for("api_delete_task", task_id=0) }}`.replace('/0', `/${taskId}`), {
+            method: 'DELETE',
+        })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    tasks = tasks.filter(t => t.id !== taskId);
+                    renderTasks();
+                }
+            })
+            .catch(error => console.error('Chyba pri vymazávaní úlohy:', error));
+    }
+
+    function escapeHtml(text) {
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        return text.replace(/[&<>"']/g, m => map[m]);
+    }
+</script>
+
+<style>
+    .todo-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .todo-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 30px;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .todo-header h1 {
+        margin: 0;
+        font-size: 2rem;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .back-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background-color: #f0f0f0;
+        color: #333;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: all 0.2s ease;
+        border: 1px solid #ddd;
+    }
+
+    .back-button:hover {
+        background-color: #e0e0e0;
+        transform: translateX(-2px);
+    }
+
+    .back-button span {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .add-task-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    .add-task-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+    }
+
+    .add-task-button span {
+        font-size: 1.3rem;
+        font-weight: bold;
+    }
+
+    .todo-notebook {
+        background: linear-gradient(
+            to right,
+            #f8f8f8 30px,
+            #ffffff 30px
+        );
+        background-size: 100% 1.5em;
+        background-position: 0 0;
+        border: 2px solid #d0d0d0;
+        border-radius: 8px;
+        padding: 20px 20px 20px 40px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08),
+                    inset 0 0 0 1px #e0e0e0;
+        min-height: 400px;
+        position: relative;
+    }
+
+    .notebook-lines {
+        line-height: 1.5em;
+    }
+
+    .tasks-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .empty-state {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 300px;
+        color: #999;
+        font-size: 1.1rem;
+        font-style: italic;
+    }
+
+    .task-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e0e0e0;
+        line-height: 1.5em;
+        transition: background-color 0.2s ease;
+    }
+
+    .task-item:last-child {
+        border-bottom: none;
+    }
+
+    .task-item:hover {
+        background-color: #f9f9f9;
+    }
+
+    .task-item.completed {
+        opacity: 0.7;
+    }
+
+    .task-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .task-checkbox {
+        width: 22px;
+        height: 22px;
+        cursor: pointer;
+        flex-shrink: 0;
+        appearance: none;
+        background-color: #fff;
+        border: 2px solid #999;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .task-checkbox:hover {
+        border-color: #4CAF50;
+        background-color: #f0f8f0;
+    }
+
+    .task-checkbox:checked {
+        background-color: #4CAF50;
+        border-color: #45a049;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+    }
+
+    .task-text {
+        flex: 1;
+        min-width: 0;
+        word-wrap: break-word;
+        color: #333;
+        font-size: 1rem;
+    }
+
+    .task-text.done {
+        text-decoration: line-through;
+        color: #999;
+    }
+
+    .deadline-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #f44336;
+        color: #f44336;
+        cursor: help;
+        flex-shrink: 0;
+        display: inline-block;
+        font-size: 16px;
+        line-height: 1;
+    }
+
+    .deadline-indicator:hover::after {
+        content: attr(data-deadline);
+        position: absolute;
+        background: #333;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+        z-index: 1000;
+        margin-top: -35px;
+        margin-left: -60px;
+    }
+
+    .task-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .btn-edit,
+    .btn-delete {
+        padding: 6px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        background-color: transparent;
+    }
+
+    .btn-edit {
+        color: #2196F3;
+        border: 1px solid #2196F3;
+    }
+
+    .btn-edit:hover {
+        background-color: #2196F3;
+        color: white;
+    }
+
+    .btn-delete {
+        color: #f44336;
+        border: 1px solid #f44336;
+    }
+
+    .btn-delete:hover {
+        background-color: #f44336;
+        color: white;
+    }
+
+    /* Modal styles */
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    .modal-content {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        max-width: 500px;
+        width: 90%;
+        animation: slideUp 0.3s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 2rem;
+        cursor: pointer;
+        color: #999;
+        transition: color 0.2s ease;
+    }
+
+    .close-modal:hover {
+        color: #333;
+    }
+
+    .task-form {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-group input:focus {
+        outline: none;
+        border-color: #4CAF50;
+        box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    }
+
+    .modal-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+    }
+
+    .btn-primary,
+    .btn-secondary {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background-color: #4CAF50;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #45a049;
+        box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+    }
+
+    .btn-secondary {
+        background-color: #f0f0f0;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+        background-color: #e0e0e0;
+    }
+
+    @media (max-width: 600px) {
+        .todo-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .todo-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .back-button,
+        .add-task-button {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .todo-notebook {
+            padding: 15px 15px 15px 30px;
+        }
+
+        .task-item {
+            flex-wrap: wrap;
+        }
+
+        .task-content {
+            width: 100%;
+        }
+
+        .task-actions {
+            width: 100%;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+    }
+</style>
+{% endblock %}

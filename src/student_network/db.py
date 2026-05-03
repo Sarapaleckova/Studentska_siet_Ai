@@ -209,6 +209,17 @@ CREATE TABLE IF NOT EXISTS private_messages (
     FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS user_tasks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    is_completed INTEGER NOT NULL DEFAULT 0 CHECK (is_completed IN (0, 1)),
+    deadline TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 
@@ -249,6 +260,7 @@ def init_db() -> None:
     ensure_group_files_folder_column(database)
     ensure_group_chat_tables(database)
     ensure_private_messages_table(database)
+    ensure_tasks_table(database)
     ensure_seed_groups(database)
     database.commit()
 
@@ -480,6 +492,23 @@ def ensure_seed_groups(database: sqlite3.Connection) -> None:
                 1,
             ),
         ],
+    )
+
+
+def ensure_tasks_table(database: sqlite3.Connection) -> None:
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS user_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            is_completed INTEGER NOT NULL DEFAULT 0 CHECK (is_completed IN (0, 1)),
+            deadline TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+        """
     )
 
 
