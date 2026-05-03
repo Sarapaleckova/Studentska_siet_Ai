@@ -2290,11 +2290,6 @@ def register_routes(app: Flask) -> None:
             values['theme_nav_color'] = selected_theme_nav_color
 
             if not errors:
-                update_user_name(
-                    user_id=int(g.user['id']),
-                    meno=values['meno'],
-                    priezvisko=values['priezvisko'],
-                )
                 save_profile(
                     user_id=int(g.user['id']),
                     skola=values['skola'],

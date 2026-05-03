@@ -89,16 +89,6 @@
     {% else %}
         <form method="post" class="profile-form" id="profile-edit-form" enctype="multipart/form-data">
             <div class="field">
-                <label for="meno">Meno</label>
-                <input id="meno" name="meno" type="text" value="{{ values.meno }}">
-                <p class="form-error field-error" aria-live="polite">{{ errors.meno if errors else '' }}</p>
-            </div>
-            <div class="field">
-                <label for="priezvisko">Priezvisko</label>
-                <input id="priezvisko" name="priezvisko" type="text" value="{{ values.priezvisko }}">
-                <p class="form-error field-error" aria-live="polite">{{ errors.priezvisko if errors else '' }}</p>
-            </div>
-            <div class="field">
                 <label for="skola">Škola na ktorej študuje</label>
                 <input id="skola" name="skola" type="text" value="{{ values.skola }}">
                 <p class="form-error field-error" aria-live="polite">{{ errors.skola if errors else '' }}</p>
