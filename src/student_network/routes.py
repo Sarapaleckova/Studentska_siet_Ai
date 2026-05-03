@@ -34,6 +34,12 @@ from student_network.repositories.group_events import (
 )
 from student_network.repositories.group_board_posts import create_group_board_post, get_group_board_posts, update_group_board_post
 from student_network.repositories.group_chats import get_group_chats, create_group_chat, create_group_chat_message, get_chat_by_id, get_chat_messages
+from student_network.repositories.private_messages import (
+    create_private_message,
+    get_messages_for_user,
+    get_unread_count,
+    mark_message_read,
+)
 from student_network.repositories.group_files import (
     create_group_file,
     create_group_file_folder,
@@ -642,6 +648,71 @@ def register_routes(app: Flask) -> None:
             member_groups=member_groups,
             non_member_groups=non_member_groups,
         )
+
+    # --- Private messages API -------------------------------------------------
+    @app.route(f'{APP_BASE_PATH}/messages/unread_count')
+    @login_required
+    def messages_unread_count():
+        count = get_unread_count(int(g.user['id']))
+        return {'count': count}
+
+    @app.route(f'{APP_BASE_PATH}/messages', methods=['GET', 'POST'])
+    @login_required
+    def messages_endpoint():
+        if request.method == 'GET':
+            rows = get_messages_for_user(int(g.user['id']))
+            sent = []
+            received = []
+            unread = []
+            for row in rows:
+                item = {
+                    'id': row['id'],
+                    'sender_id': row['sender_id'],
+                    'recipient_id': row['recipient_id'],
+                    'content': row['content'],
+                    'is_read': bool(row['is_read']),
+                    'created_at': _format_datetime_eu(row['created_at']),
+                    'sender_name': f"{row['sender_meno']} {row['sender_priezvisko']}",
+                    'recipient_name': f"{row['recipient_meno']} {row['recipient_priezvisko']}",
+                }
+                if int(row['sender_id']) == int(g.user['id']):
+                    sent.append(item)
+                if int(row['recipient_id']) == int(g.user['id']):
+                    received.append(item)
+                    if not row['is_read']:
+                        unread.append(item)
+
+            return {'sent': sent, 'received': received, 'unread': unread}
+
+        # POST -> create new message
+        try:
+            recipient_id = int(request.form.get('recipient_id', '0'))
+        except ValueError:
+            return {'error': 'Neplatný príjemca'}, 400
+
+        content = (request.form.get('content') or '').strip()
+        if not content:
+            return {'error': 'Obsah správy je prázdny.'}, 400
+
+        message_id = create_private_message(sender_id=int(g.user['id']), recipient_id=recipient_id, content=content)
+        return {'ok': True, 'id': message_id}
+
+    @app.route(f'{APP_BASE_PATH}/messages/<int:message_id>/read', methods=['POST'])
+    @login_required
+    def messages_mark_read(message_id: int):
+        mark_message_read(message_id=message_id, recipient_id=int(g.user['id']))
+        return {'ok': True}
+
+    @app.route(f'{APP_BASE_PATH}/users/search')
+    @login_required
+    def users_search():
+        q = request.args.get('q', '').strip()
+        rows = search_users_by_name(q) if q else []
+        result = [
+            {'id': r['id'], 'name': f"{r['meno']} {r['priezvisko']}", 'photo': (url_for('static', filename=r['profilova_fotka']) if r['profilova_fotka'] else '')}
+            for r in rows
+        ]
+        return {'results': result}
 
     @app.route(f'{APP_BASE_PATH}/skupiny/vytvorit', methods=['GET', 'POST'])
     @login_required

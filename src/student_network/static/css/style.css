@@ -359,6 +359,55 @@ input {
     box-sizing: border-box;
 }
 
+/* Private messages (top-nav) */
+.top-nav-icon {
+    position: relative;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    font-size: 1rem;
+    padding: 6px 8px;
+    margin-right: 6px;
+    cursor: pointer;
+}
+.pm-unread-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: #ff3b30;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+/* Popup panel */
+.pm-popup { display:none; }
+.pm-popup.is-open { display:block; }
+.pm-popup-backdrop { position: fixed; inset: 0; background: rgba(10,18,34,0.5); }
+.pm-popup-panel {
+    position: fixed; right: 12px; top: 60px; width: 360px; max-height: 70vh; overflow: auto; z-index: 200;
+    background: #ffffff; color: #0b1f4d; border-radius: 10px; padding: 12px; box-shadow: 0 12px 40px rgba(11,31,77,0.25);
+}
+.pm-popup-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.pm-tabs { display:flex; gap:6px; margin:8px 0; }
+.pm-tab { padding:6px 8px; background:#f4f6fb; border-radius:8px; cursor:pointer; font-weight:700; font-size:0.85rem; }
+.pm-tab.active { background:#0f58c7; color:#fff; }
+.pm-list { margin-top:8px; }
+.pm-item { padding:8px; border-bottom:1px solid #eef2ff; cursor:pointer; }
+.pm-item-head { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+.pm-item-body { margin-top:6px; color:#21314d; }
+.pm-item.pm-unread { background: linear-gradient(90deg, rgba(15,88,199,0.06), rgba(15,88,199,0.02)); }
+.pm-compose { margin-top:10px; }
+.pm-recipient-results { display:flex; flex-direction:column; gap:6px; margin:6px 0 8px 0; }
+.pm-recipient-item { display:block; padding:6px 8px; text-align:left; border-radius:6px; background:#f7f9ff; border:none; cursor:pointer; }
+.pm-compose-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }
+
+@media (max-width: 520px) {
+    .pm-popup-panel { right: 8px; left: 8px; top: 70px; width: auto; }
+}
+
 .top-profile-link:hover,
 .top-profile-link:focus-visible,
 .top-profile-link.active {

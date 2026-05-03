@@ -198,6 +198,17 @@ CREATE TABLE IF NOT EXISTS group_chat_messages (
     FOREIGN KEY (chat_id) REFERENCES group_chats(id) ON DELETE CASCADE,
     FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS private_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sender_id INTEGER NOT NULL,
+    recipient_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    is_read INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 
@@ -237,6 +248,7 @@ def init_db() -> None:
     ensure_group_file_folders_table(database)
     ensure_group_files_folder_column(database)
     ensure_group_chat_tables(database)
+    ensure_private_messages_table(database)
     ensure_seed_groups(database)
     database.commit()
 
@@ -404,6 +416,23 @@ def ensure_group_chat_tables(database: sqlite3.Connection) -> None:
             created_at TEXT NOT NULL,
             FOREIGN KEY (chat_id) REFERENCES group_chats(id) ON DELETE CASCADE,
             FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+        """
+    )
+
+
+def ensure_private_messages_table(database: sqlite3.Connection) -> None:
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS private_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sender_id INTEGER NOT NULL,
+            recipient_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            is_read INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+            FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE
         )
         """
     )
