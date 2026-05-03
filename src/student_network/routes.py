@@ -1889,6 +1889,14 @@ def register_routes(app: Flask) -> None:
         flash('Príspevok bol úspešne nahratý.', 'success')
         return redirect(url_for('aplikacia_domov'))
 
+    @app.route(f'{APP_BASE_PATH}/ucenie')
+    @login_required
+    def aplikacia_ucenie() -> str:
+        return render_template(
+            'ucenie.html',
+            active_tab='ucenie',
+        )
+
     @app.route(f'{APP_BASE_PATH}/prispevky/<int:post_id>/<post_slug>', methods=['GET', 'POST'])
     @login_required
     def aplikacia_prispevok_detail(post_id: int, post_slug: str) -> str:
