@@ -2958,23 +2958,28 @@ body.modal-open {
     right: 0;
     bottom: 0;
     display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 0;
     border-top: 1px solid rgba(255, 255, 255, 0.22);
     background: var(--app-nav-color);
     z-index: 80;
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 .group-nav-item {
     border: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.22);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
     background: transparent;
     color: #c8d5ff;
-    min-height: 58px;
-    padding: 8px 6px;
-    font-size: 0.82rem;
+    min-height: 50px;
+    padding: 6px 4px;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .group-nav-item:last-child {
@@ -3027,7 +3032,7 @@ body.modal-open {
     line-height: 1.6;
 }
 
-@media (max-width: 560px) {
+@media (max-width: 760px) {
     .group-card-image-wrap {
         width: 90px;
         height: 90px;
@@ -3053,10 +3058,10 @@ body.modal-open {
     }
 
     .group-nav-item {
-        font-size: 0.75rem;
-        min-height: 54px;
-        padding-left: 4px;
-        padding-right: 4px;
+        font-size: 0.72rem;
+        min-height: 48px;
+        padding-left: 6px;
+        padding-right: 6px;
     }
 
     .group-detail-page {
