@@ -369,11 +369,30 @@ input {
     padding: 6px 8px;
     margin-right: 6px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+.top-nav-icon .pm-svg-icon { display: block; width: 20px; height: 14px; color: #ffffff; }
+.top-nav-icon[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.75);
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    z-index: 300;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.2);
 }
 .pm-unread-badge {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: -4px;
+    right: -4px;
     background: #ff3b30;
     color: #ffffff;
     border-radius: 999px;
@@ -381,6 +400,13 @@ input {
     font-size: 0.7rem;
     font-weight: 700;
 }
+
+/* Message detail inside popup */
+.pm-detail { padding: 8px; border-bottom: 1px solid #eef2ff; background: #ffffff; margin-bottom: 8px; border-radius: 8px; }
+.pm-detail-head { display:flex; justify-content:space-between; gap:8px; align-items:center; font-weight:700; }
+.pm-detail-body { margin-top:8px; color:#21314d; white-space:pre-wrap; }
+.pm-detail-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+
 
 /* Popup panel */
 .pm-popup { display:none; }
