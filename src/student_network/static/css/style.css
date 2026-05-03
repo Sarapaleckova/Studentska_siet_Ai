@@ -18,7 +18,8 @@ body {
     min-height: 100vh;
     background-color: #0b1f4d;
     position: relative;
-    overflow: hidden;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 60px 20px;
     box-sizing: border-box;
 }
