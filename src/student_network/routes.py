@@ -14,6 +14,8 @@ from uuid import uuid4
 from flask import Flask, abort, flash, g, redirect, render_template, request, send_from_directory, session, url_for
 from werkzeug.utils import secure_filename
 
+from student_network.db import get_db
+
 from student_network.file_types import (
     ALLOWED_POST_FILE_EXTENSIONS,
     ALLOWED_POST_IMAGE_EXTENSIONS,
