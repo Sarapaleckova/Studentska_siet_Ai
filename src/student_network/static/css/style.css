@@ -420,12 +420,18 @@ input {
 .pm-tabs { display:flex; gap:6px; margin:8px 0; }
 .pm-tab { padding:6px 8px; background:#f4f6fb; border-radius:8px; cursor:pointer; font-weight:700; font-size:0.85rem; }
 .pm-tab.active { background:#0f58c7; color:#fff; }
+.pm-search-box { position:relative; display:flex; align-items:center; margin:8px 0; }
+.pm-search-input { width:100%; padding:8px 30px 8px 8px; border:1px solid #d0d6e8; border-radius:6px; font-size:0.9rem; box-sizing:border-box; }
+.pm-search-box-icon { position:absolute; right:8px; width:16px; height:16px; color:#999; pointer-events:none; }
 .pm-list { margin-top:8px; }
 .pm-item { padding:8px; border-bottom:1px solid #eef2ff; cursor:pointer; }
 .pm-item-head { display:flex; justify-content:space-between; gap:8px; align-items:center; }
 .pm-item-body { margin-top:6px; color:#21314d; }
 .pm-item.pm-unread { background: linear-gradient(90deg, rgba(15,88,199,0.06), rgba(15,88,199,0.02)); }
 .pm-compose { margin-top:10px; }
+.pm-recipient-search-wrapper { position:relative; display:flex; align-items:center; }
+.pm-recipient-search-wrapper input { padding-right:30px; width:100%; }
+.pm-search-icon { position:absolute; right:8px; width:16px; height:16px; color:#999; pointer-events:none; }
 .pm-recipient-results { display:flex; flex-direction:column; gap:6px; margin:6px 0 8px 0; }
 .pm-recipient-item { display:block; padding:6px 8px; text-align:left; border-radius:6px; background:#f7f9ff; border:none; cursor:pointer; }
 .pm-compose-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:8px; }

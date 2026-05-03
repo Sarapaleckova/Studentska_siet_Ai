@@ -86,6 +86,14 @@
                 <button data-pm-tab="unread" class="pm-tab">Neprečítané</button>
             </div>
 
+            <div class="pm-search-box">
+                <input id="pm-search" type="text" placeholder="Hľadaj v správach..." class="pm-search-input">
+                <svg class="pm-search-box-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M16 16L22 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+
             <div id="pm-detail" class="pm-detail" hidden>
                 <div class="pm-detail-head"><strong id="pm-detail-author"></strong><span id="pm-detail-time" class="pm-item-time"></span></div>
                 <div id="pm-detail-body" class="pm-detail-body"></div>
@@ -99,7 +107,13 @@
 
             <div id="pm-compose" class="pm-compose" hidden>
                 <label for="pm-recipient">Komu</label>
-                <input id="pm-recipient" type="text" placeholder="Hľadaj používateľa...">
+                <div class="pm-recipient-search-wrapper">
+                    <input id="pm-recipient" type="text" placeholder="Meno alebo e-mail...">
+                    <svg class="pm-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M16 16L22 22" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
                 <div id="pm-recipient-results" class="pm-recipient-results"></div>
                 <label for="pm-content">Správa</label>
                 <textarea id="pm-content" rows="4"></textarea>
@@ -126,6 +140,7 @@
         const pmContent = document.getElementById('pm-content');
         const pmSend = document.getElementById('pm-send');
         const pmCancel = document.getElementById('pm-cancel');
+        const pmSearch = document.getElementById('pm-search');
 
         const pmDetail = document.getElementById('pm-detail');
         const pmDetailAuthor = document.getElementById('pm-detail-author');
@@ -134,6 +149,8 @@
         const pmDetailReply = document.getElementById('pm-detail-reply');
         const pmDetailBack = document.getElementById('pm-detail-back');
         let currentDetailItem = null;
+        let currentMessages = { sent: [], received: [], unread: [] };
+        let currentTab = 'inbox';
 
         const api = {
             unreadCount: function () { return fetch('{{ url_for('messages_unread_count') }}').then(r=>r.json()); },
@@ -178,16 +195,35 @@
         }
 
         function renderMessages(data, tab) {
+            currentMessages = data;
+            currentTab = tab;
+            pmSearch.value = '';
+            applyMessageFilter(tab, '');
+        }
+
+        function applyMessageFilter(tab, query) {
             pmList.innerHTML = '';
             pmList.hidden = false;
             pmDetail.hidden = true;
-            const rows = (tab === 'sent') ? data.sent : (tab === 'unread' ? data.unread : data.received);
+            const rows = (tab === 'sent') ? currentMessages.sent : (tab === 'unread' ? currentMessages.unread : currentMessages.received);
             if (!rows || rows.length === 0) {
                 pmList.innerHTML = '<p class="empty-note">Žiadne správy.</p>';
                 return;
             }
 
-            rows.forEach(item => {
+            const q = query.toLowerCase();
+            const filtered = rows.filter(item => {
+                const name = (tab === 'sent' ? item.recipient_name : item.sender_name || '').toLowerCase();
+                const content = (item.content || '').toLowerCase();
+                return !q || name.includes(q) || content.includes(q);
+            });
+
+            if (filtered.length === 0) {
+                pmList.innerHTML = '<p class="empty-note">Žiadne výsledky.</p>';
+                return;
+            }
+
+            filtered.forEach(item => {
                 const el = document.createElement('article');
                 el.className = 'pm-item';
                 el.dataset.id = item.id;
@@ -227,12 +263,17 @@
                 document.querySelectorAll('.pm-tab').forEach(b=>b.classList.remove('active'));
                 tabButton.classList.add('active');
                 const tab = tabButton.dataset.pmTab;
-                fetchAndRender(tab);
+                api.fetchMessages().then(data => renderMessages(data, tab)).catch(()=>{ pmList.innerHTML = '<p class="empty-note">Chyba pri načítaní.</p>'; });
             }
 
             if (e.target === pmComposeBtn) {
                 pmCompose.hidden = false; pmRecipient.value = ''; pmContent.value = ''; pmRecipient.dataset.userid = ''; pmRecipientResults.innerHTML = ''; pmRecipient.focus();
             }
+        });
+
+        pmSearch.addEventListener('input', function () {
+            const query = pmSearch.value.trim();
+            applyMessageFilter(currentTab, query);
         });
 
         if (pmDetailBack) pmDetailBack.addEventListener('click', function () { closeMessageDetail(); });

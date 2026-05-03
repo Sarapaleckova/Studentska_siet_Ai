@@ -64,8 +64,9 @@ def search_users_by_name(search_query: str) -> list[Row]:
             LOWER(u.meno) LIKE ?
             OR LOWER(u.priezvisko) LIKE ?
             OR LOWER(u.meno || ' ' || u.priezvisko) LIKE ?
+            OR LOWER(u.email) LIKE ?
         ORDER BY u.priezvisko COLLATE NOCASE ASC, u.meno COLLATE NOCASE ASC
         """,
-        (search_value, search_value, search_value),
+        (search_value, search_value, search_value, search_value),
     ).fetchall()
     return list(rows)
