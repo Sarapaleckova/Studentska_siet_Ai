@@ -180,6 +180,24 @@ CREATE TABLE IF NOT EXISTS group_board_posts (
     FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE,
     FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS group_chats (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    nazov TEXT NOT NULL DEFAULT 'Hlavný chat',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS group_chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id INTEGER NOT NULL,
+    sender_user_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (chat_id) REFERENCES group_chats(id) ON DELETE CASCADE,
+    FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE CASCADE
+);
 """
 
 
@@ -218,6 +236,7 @@ def init_db() -> None:
     ensure_group_event_notification_schedule_columns(database)
     ensure_group_file_folders_table(database)
     ensure_group_files_folder_column(database)
+    ensure_group_chat_tables(database)
     ensure_seed_groups(database)
     database.commit()
 
@@ -359,6 +378,35 @@ def ensure_group_files_folder_column(database: sqlite3.Connection) -> None:
         database.execute(
             "ALTER TABLE group_files ADD COLUMN folder_id INTEGER"
         )
+
+
+def ensure_group_chat_tables(database: sqlite3.Connection) -> None:
+    # Create chat tables if they do not exist already (safe for migrations)
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS group_chats (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            group_id INTEGER NOT NULL,
+            nazov TEXT NOT NULL DEFAULT 'Hlavný chat',
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (group_id) REFERENCES groups_table(id) ON DELETE CASCADE
+        )
+        """
+    )
+
+    database.execute(
+        """
+        CREATE TABLE IF NOT EXISTS group_chat_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            chat_id INTEGER NOT NULL,
+            sender_user_id INTEGER NOT NULL,
+            content TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (chat_id) REFERENCES group_chats(id) ON DELETE CASCADE,
+            FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+        """
+    )
 
 
 def ensure_seed_groups(database: sqlite3.Connection) -> None:

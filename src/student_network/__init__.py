@@ -3,6 +3,10 @@
 from pathlib import Path
 
 from flask import Flask
+try:
+    from flask_socketio import SocketIO
+except Exception:
+    SocketIO = None
 
 from .db import init_app as init_db_app
 
@@ -30,4 +34,19 @@ def create_app() -> Flask:
     from .routes import register_routes
 
     register_routes(app)
+    # initialize SocketIO if available
+    if SocketIO is not None:
+        # create module-level socketio instance and init with app
+        from . import socketio as _socketio_module
+        if getattr(_socketio_module, 'socketio', None) is None:
+            # socketio module will create instance on import
+            pass
+        else:
+            _socketio_module.socketio.init_app(app)
+        # import events to register handlers
+        try:
+            from . import socketio_events  # noqa: F401
+        except Exception:
+            # best-effort: don't crash app if socket events fail to import
+            pass
     return app

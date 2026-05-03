@@ -33,6 +33,7 @@ from student_network.repositories.group_events import (
     update_group_event,
 )
 from student_network.repositories.group_board_posts import create_group_board_post, get_group_board_posts, update_group_board_post
+from student_network.repositories.group_chats import get_group_chats, create_group_chat, create_group_chat_message, get_chat_by_id, get_chat_messages
 from student_network.repositories.group_files import (
     create_group_file,
     create_group_file_folder,
@@ -83,7 +84,7 @@ ALLOWED_PROFILE_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 ALLOWED_THEME_BG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 ALLOWED_GROUP_PHOTO_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.gif'}
 APP_BASE_PATH = '/studentska-siet'
-GROUP_TABS = {'hlavna', 'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'}
+GROUP_TABS = {'hlavna', 'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory', 'spravy'}
 ALLOWED_GROUP_SHARED_FILE_EXTENSIONS = ALLOWED_POST_FILE_EXTENSIONS | ALLOWED_POST_IMAGE_EXTENSIONS
 GROUP_FILE_ACCEPT_VALUE = ','.join(sorted(ALLOWED_GROUP_SHARED_FILE_EXTENSIONS))
 THEME_PRESETS: dict[str, dict[str, str]] = {
@@ -959,6 +960,12 @@ def register_routes(app: Flask) -> None:
 
         month_title = datetime(year_value, month_number, 1).strftime('%B %Y')
 
+        # loads chats for the group (may be empty)
+        try:
+            group_chats = get_group_chats(group_id=group_id)
+        except Exception:
+            group_chats = []
+
         return render_template(
             'skupina_detail.html',
             active_tab='skupiny',
@@ -967,6 +974,7 @@ def register_routes(app: Flask) -> None:
             active_detail_tab=active_detail_tab,
             group_announcements=group_announcements,
             group_member_posts=group_member_posts,
+            group_chats=group_chats,
             current_month_key=current_month_key,
             prev_month_key=prev_month_key,
             next_month_key=next_month_key,
@@ -1580,6 +1588,80 @@ def register_routes(app: Flask) -> None:
             as_attachment=True,
             download_name=group_file['original_nazov'],
         )
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/chats', methods=['POST'])
+    @login_required
+    def aplikacia_skupina_create_chat(group_id: int):
+        group = get_group_by_id(group_id)
+        if group is None:
+            abort(404)
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            abort(403)
+
+        name = request.form.get('name') or (request.json and request.json.get('name')) or ''
+        name = str(name).strip()[:140] or 'Chat'
+
+        new_id = create_group_chat(group_id=group_id, nazov=name)
+
+        if request.is_json:
+            return {'id': new_id, 'nazov': name}
+        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='spravy'))
+
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/chats/<int:chat_id>/messages', methods=['POST'])
+    @login_required
+    def aplikacia_skupina_send_message(group_id: int, chat_id: int):
+        group = get_group_by_id(group_id)
+        if group is None:
+            abort(404)
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            abort(403)
+
+        content = request.form.get('content') or (request.json and request.json.get('content')) or ''
+        content = str(content).strip()
+        if not content:
+            abort(400)
+
+        msg_id = create_group_chat_message(chat_id=chat_id, sender_user_id=int(g.user['id']), content=content)
+
+        if request.is_json:
+            return {'id': msg_id, 'chat_id': chat_id, 'content': content}
+        return redirect(url_for('aplikacia_skupina_detail', group_id=group_id, tab='spravy'))
+
+
+    @app.route(f'{APP_BASE_PATH}/skupiny/<int:group_id>/chats/<int:chat_id>/messages', methods=['GET'])
+    @login_required
+    def aplikacia_skupina_get_messages(group_id: int, chat_id: int):
+        group = get_group_by_id(group_id)
+        if group is None:
+            abort(404)
+
+        membership = get_group_membership(group_id=group_id, user_id=int(g.user['id']))
+        if membership is None or membership['status'] != 'member':
+            abort(403)
+
+        chat = get_chat_by_id(chat_id)
+        if chat is None or int(chat['group_id']) != int(group_id):
+            abort(404)
+
+        msgs = get_chat_messages(chat_id)
+        # format messages similarly to websocket payload
+        formatted = []
+        for m in msgs:
+            author = f"{m.get('author_meno','') or ''} {m.get('author_priezvisko','') or ''}".strip()
+            formatted.append({
+                'id': m['id'],
+                'chat_id': m['chat_id'],
+                'sender_user_id': m['sender_user_id'],
+                'content': m['content'],
+                'created_at': m['created_at'],
+                'author': author,
+            })
+        return {'chat_id': chat_id, 'messages': formatted}
 
     @app.route(f'{APP_BASE_PATH}/hladat')
     @login_required

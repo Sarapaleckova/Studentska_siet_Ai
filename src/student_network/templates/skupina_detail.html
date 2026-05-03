@@ -186,6 +186,41 @@
             </div>
         </section>
 
+        <section class="section-card group-tab-panel {% if active_detail_tab == 'spravy' %}active{% endif %}" data-tab-panel="spravy" {% if active_detail_tab != 'spravy' %}hidden{% endif %}>
+            <h2>Správy</h2>
+            <p class="group-tab-note">Skupinový chat. Vytvor viac chatov a prepínaj medzi nimi.</p>
+
+            <div class="group-chat-layout">
+                <aside class="group-chat-list">
+                    <div class="chat-list-header">
+                        <h3>Chaty</h3>
+                        <form id="create-chat-form" class="create-chat-form" onsubmit="return false;">
+                            <input id="new-chat-name" name="name" type="text" placeholder="Názov chatu" maxlength="140">
+                            <button id="create-chat-button" class="btn btn-small" type="button">Vytvoriť</button>
+                        </form>
+                    </div>
+                    <ul id="chat-list" class="chat-list">
+                        {% for chat in group_chats %}
+                            <li class="chat-list-item" data-chat-id="{{ chat.id }}">{{ chat.nazov }}</li>
+                        {% else %}
+                            <li class="chat-list-empty">Žiadne chaty. Vytvor nový chat.</li>
+                        {% endfor %}
+                    </ul>
+                </aside>
+
+                <section class="group-chat-panel">
+                    <div class="chat-panel-header">
+                        <h3 id="chat-title">Vyber chat</h3>
+                    </div>
+                    <div id="chat-messages" class="chat-messages" aria-live="polite" aria-atomic="false"></div>
+                    <form id="chat-send-form" class="chat-send-form" onsubmit="return false;">
+                        <input id="chat-input" name="message" type="text" placeholder="Napíš správu..." autocomplete="off" maxlength="1000">
+                        <button id="chat-send-button" class="btn" type="button">Odoslať</button>
+                    </form>
+                </section>
+            </div>
+        </section>
+
         <section class="section-card group-tab-panel {% if active_detail_tab == 'zdielat' %}active{% endif %}" data-tab-panel="zdielat" {% if active_detail_tab != 'zdielat' %}hidden{% endif %}>
             <h2>Zdieľať</h2>
             <p class="group-tab-note">V tejto sekcii môžeš zdieľať príspevky, oznamy a študijné materiály pre členov skupiny.</p>
@@ -550,6 +585,7 @@
         <button class="group-nav-item {% if active_detail_tab == 'kalendar' %}active{% endif %}" type="button" data-tab-target="kalendar">Kalendár</button>
         <button class="group-nav-item {% if active_detail_tab == 'clenovia' %}active{% endif %}" type="button" data-tab-target="clenovia">Členovia</button>
         <button class="group-nav-item {% if active_detail_tab == 'subory' %}active{% endif %}" type="button" data-tab-target="subory">Súbory</button>
+        <button class="group-nav-item {% if active_detail_tab == 'spravy' %}active{% endif %}" type="button" data-tab-target="spravy">Správy</button>
         <a class="group-nav-item group-nav-link-item" href="{{ url_for('aplikacia_skupina_nastavenia', group_id=group.id) }}">
             <span class="group-nav-gear" aria-hidden="true">⚙</span>
             <span>Nastavenia</span>
@@ -559,6 +595,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="/socket.io/socket.io.js"></script>
 <script>
 (function () {
     const groupId = {{ group.id }};
@@ -645,7 +682,7 @@
             return;
         }
 
-        const allowedTabs = ['hlavna', 'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory'];
+        const allowedTabs = ['hlavna', 'zdielat', 'notifikacie', 'kalendar', 'clenovia', 'subory', 'spravy'];
         if (allowedTabs.indexOf(tabName) === -1) {
             return;
         }
@@ -923,6 +960,159 @@
             closeEventModal();
         }
     });
+
+    // --- group chat client (uses Socket.IO if available) ---
+    (function () {
+        const chatSection = document.querySelector('.group-chat-layout');
+        if (!chatSection) return;
+
+        const chatList = document.getElementById('chat-list');
+        const chatTitle = document.getElementById('chat-title');
+        const chatMessages = document.getElementById('chat-messages');
+        const chatInput = document.getElementById('chat-input');
+        const chatSendButton = document.getElementById('chat-send-button');
+        const createChatButton = document.getElementById('create-chat-button');
+        const newChatName = document.getElementById('new-chat-name');
+
+        let socket = null;
+        let activeChatId = null;
+
+        function appendMessage(m) {
+            const el = document.createElement('div');
+            el.className = 'chat-message';
+            el.innerHTML = `<div class="chat-message-head"><strong>${escapeHtml(m.author)}</strong> <span class="chat-message-time">${m.created_at}</span></div><div class="chat-message-body">${escapeHtml(m.content)}</div>`;
+            chatMessages.appendChild(el);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function escapeHtml(s){ return String(s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c];}); }
+
+        function connectSocket() {
+            if (typeof io === 'undefined') return null;
+            try {
+                socket = io();
+            } catch (e) {
+                socket = null;
+            }
+            if (!socket) return;
+
+            socket.on('connect', function () {
+                // console.log('socket connected');
+            });
+
+            socket.on('load_messages', function (payload) {
+                if (!payload || payload.chat_id !== activeChatId) return;
+                chatMessages.innerHTML = '';
+                (payload.messages || []).forEach(function (m) { appendMessage(m); });
+            });
+
+            socket.on('new_message', function (m) {
+                if (m.chat_id !== activeChatId) return;
+                appendMessage(m);
+            });
+
+            socket.on('chat_created', function (payload) {
+                if (!payload || !payload.chat) return;
+                const li = document.createElement('li');
+                li.className = 'chat-list-item';
+                li.dataset.chatId = payload.chat.id;
+                li.textContent = payload.chat.nazov || 'Chat';
+                li.addEventListener('click', onChatClick);
+                const empty = chatList.querySelector('.chat-list-empty');
+                if (empty) empty.remove();
+                chatList.appendChild(li);
+            });
+        }
+
+        function joinChat(chatId) {
+            activeChatId = chatId;
+            const titleEl = chatList.querySelector('[data-chat-id="' + chatId + '"]');
+            chatTitle.textContent = titleEl ? titleEl.textContent : 'Chat';
+            chatMessages.innerHTML = '';
+            if (socket) {
+                if (activeChatId) socket.emit('leave_chat', { chat_id: activeChatId, group_id: {{ group.id }} });
+                socket.emit('join_chat', { chat_id: chatId, group_id: {{ group.id }} });
+                return;
+            }
+            // fallback: fetch messages via HTTP
+            fetch(`/studentska-siet/skupiny/${{ group.id }}/chats/${chatId}/messages`)
+                .then(function (r) { return r.json(); })
+                .then(function (payload) {
+                    chatMessages.innerHTML = '';
+                    (payload.messages || []).forEach(function (m) {
+                        appendMessage({ author: m.author || '', content: m.content || '', created_at: m.created_at });
+                    });
+                }).catch(function () {});
+        }
+
+        function onChatClick(ev) {
+            const el = ev.currentTarget || ev.target;
+            const id = parseInt(el.dataset.chatId || '0');
+            if (!id) return;
+            joinChat(id);
+            // highlight
+            document.querySelectorAll('.chat-list-item').forEach(function(i){ i.classList.toggle('active', i === el); });
+        }
+
+        function sendMessage() {
+            const text = (chatInput.value || '').trim();
+            if (!text || !activeChatId) return;
+            if (socket) {
+                socket.emit('send_message', { chat_id: activeChatId, group_id: {{ group.id }}, content: text });
+                chatInput.value = '';
+                return;
+            }
+            // fallback: send via HTTP
+            fetch(`/studentska-siet/skupiny/${{ group.id }}/chats/${activeChatId}/messages`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: text }),
+            }).then(function (r) { if (r.ok) return r.json(); throw new Error('send failed'); })
+              .then(function (data) {
+                  appendMessage({ author: '{{ g.user.meno }} {{ g.user.priezvisko }}', content: text, created_at: new Date().toISOString().slice(0,16).replace('T',' ') });
+                  chatInput.value = '';
+              }).catch(function () {});
+        }
+
+        // attach handlers on existing list items
+        chatList.querySelectorAll('.chat-list-item').forEach(function (li) { li.addEventListener('click', onChatClick); });
+
+        chatSendButton.addEventListener('click', sendMessage);
+        chatInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendMessage(); });
+        createChatButton.addEventListener('click', function () {
+            const name = (newChatName.value || '').trim();
+            if (socket) {
+                socket.emit('create_chat', { group_id: {{ group.id }}, name: name });
+                newChatName.value = '';
+                return;
+            }
+            // fallback: create via HTTP
+            fetch(`/studentska-siet/skupiny/${{ group.id }}/chats`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name }),
+            }).then(function (r) { if (r.ok) return r.json(); throw new Error('create failed'); })
+              .then(function (payload) {
+                  const li = document.createElement('li');
+                  li.className = 'chat-list-item';
+                  li.dataset.chatId = payload.id;
+                  li.textContent = payload.nazov || 'Chat';
+                  li.addEventListener('click', onChatClick);
+                  const empty = chatList.querySelector('.chat-list-empty');
+                  if (empty) empty.remove();
+                  chatList.appendChild(li);
+                  newChatName.value = '';
+              }).catch(function () {});
+        });
+
+        connectSocket();
+
+        // auto-join first chat if exists
+        const first = chatList.querySelector('.chat-list-item');
+        if (first) {
+            first.click();
+        }
+    })();
 
     const params = new URLSearchParams(window.location.search);
     const initialTab = params.get('tab') || '{{ active_detail_tab }}';

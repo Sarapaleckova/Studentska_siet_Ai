@@ -6,4 +6,12 @@ app = create_app()
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    try:
+        from student_network.socketio import socketio
+    except Exception:
+        socketio = None
+
+    if socketio is not None:
+        socketio.run(app, debug=True)
+    else:
+        app.run(debug=True)
