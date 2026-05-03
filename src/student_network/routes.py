@@ -455,7 +455,9 @@ def register_routes(app: Flask) -> None:
                 'average_rating': float(row['average_rating'] or 0),
                 'rating_count': int(row['rating_count'] or 0),
                 'rating_text': _format_rating(float(row['average_rating'] or 0), int(row['rating_count'] or 0)),
-                'nahladovy_obrazok_url': url_for('static', filename=row['nahladovy_obrazok']) if row['nahladovy_obrazok'] else None,
+                'nahladovy_obrazok_url': (
+                    row['nahladovy_obrazok'] if (row['nahladovy_obrazok'] or '').startswith('data:') else url_for('static', filename=row['nahladovy_obrazok'])
+                ) if row['nahladovy_obrazok'] else None,
             }
             for row in post_rows
         ]

@@ -1350,9 +1350,13 @@ input {
 
 .post-detail-large-image {
     width: 100%;
+    height: 380px;
+    max-height: 80vh;
     border-radius: 12px;
     display: block;
     margin: 0;
+    object-fit: contain;
+    background: #f5f5f5;
 }
 
 .post-detail-large-placeholder {
@@ -1360,6 +1364,13 @@ input {
     height: 380px;
     border-radius: 12px;
     background: linear-gradient(135deg, #d5d8dd 0%, #bec4cc 100%);
+}
+
+@media (max-width: 760px) {
+    .post-detail-large-image,
+    .post-detail-large-placeholder {
+        height: 260px;
+    }
 }
 
 .post-detail-info {
@@ -3215,8 +3226,9 @@ body.modal-open {
 .group-detail-image {
     width: 100%;
     display: block;
-    height: 300px;
-    object-fit: cover;
+    height: 210px;
+    object-fit: contain;
+    background: #f5f5f5;
 }
 
 .group-detail-meta {
