@@ -1804,18 +1804,32 @@ def register_routes(app: Flask) -> None:
 
             if 'posts' in selected_filter_set:
                 post_rows = search_posts(query)
-                posts = [
-                    {
-                        'id': row['id'],
-                        'nazov': row['nazov'],
-                        'popis': row['popis'],
-                        'author': f"{row['author_meno']} {row['author_priezvisko']}",
-                        'author_profile_url': _profile_url_for_user(int(row['author_id'])),
-                        'author_is_current_user': int(row['author_id']) == int(g.user['id']),
-                        'post_slug': _slugify(row['nazov']),
-                    }
-                    for row in post_rows
-                ]
+                posts = []
+                for row in post_rows:
+                    # bezpečné získanie autora (niektoré riadky môžu chýbať)
+                    keys = row.keys()
+                    author_meno = row['author_meno'] if 'author_meno' in keys and row['author_meno'] is not None else ''
+                    author_priezvisko = row['author_priezvisko'] if 'author_priezvisko' in keys and row['author_priezvisko'] is not None else ''
+                    author_name = f"{author_meno} {author_priezvisko}".strip()
+                    author_id_raw = row['author_id'] if 'author_id' in keys else None
+                    try:
+                        author_id = int(author_id_raw) if author_id_raw is not None else None
+                    except (TypeError, ValueError):
+                        author_id = None
+
+                    post_id = row['id'] if 'id' in keys else None
+                    nazov = row['nazov'] if 'nazov' in keys and row['nazov'] is not None else ''
+                    popis = row['popis'] if 'popis' in keys and row['popis'] is not None else ''
+
+                    posts.append({
+                        'id': post_id,
+                        'nazov': nazov,
+                        'popis': popis,
+                        'author': author_name,
+                        'author_profile_url': _profile_url_for_user(author_id) if author_id is not None else None,
+                        'author_is_current_user': (author_id is not None and int(author_id) == int(g.user['id'])),
+                        'post_slug': _slugify(nazov),
+                    })
 
         return render_template(
             'hladat.html',
